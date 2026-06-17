@@ -29,27 +29,31 @@ async function entrar(){
   const acc=MAN.acessos.find(a=>a.h===h);
   if(!acc){ $('#loginErr').textContent='Senha inválida.'; return; }
   const fk=await fkeyOf(pw);
-  sessionStorage.setItem('nc_slug', acc.slug);
   sessionStorage.setItem('nc_fk', fk);
-  iniciar(acc.slug, fk);
+  sessionStorage.setItem('nc_acc', JSON.stringify(acc));
+  iniciar(fk, acc);
 }
 function sair(){ sessionStorage.clear(); location.reload(); }
 $('#btnSair').onclick = sair;
 
-function iniciar(slug, fk){
+function iniciar(fk, acc){
   $('#login').classList.add('hidden');
   $('#app').classList.remove('hidden');
   $('#rodapeAtual').textContent = 'Base: '+MAN.baseTotal+' produtos · atualizado '+MAN.atualizadoEm+' · ref. '+fmtData(BASE.ref);
-  if(slug==='*'){
-    ADMIN=true;
-    const sel=$('#selSetor'); sel.classList.remove('hidden');
-    sel.innerHTML = MAN.setores.map(s=>`<option value="${s.slug}">${s.nome}</option>`).join('');
-    // admin: um unico arquivo (fk admin) traz todos os setores
-    carregarArquivo(fk, ()=>{ sel.onchange=()=>aplicarSetor(sel.value); aplicarSetor(MAN.setores[0].slug); });
-  }else{
-    ADMIN=false;
-    carregarArquivo(fk, ()=>aplicarSetor(slug));
-  }
+  window.__ACC = acc;
+  carregarArquivo(fk, ()=>{
+    const loaded = Object.keys(window.SETORES||{});
+    const ordered = MAN.setores.filter(s=>loaded.includes(s.slug)).map(s=>s.slug);
+    if(ordered.length===0){ $('#login').classList.remove('hidden'); $('#app').classList.add('hidden'); $('#loginErr').textContent='Sem setores liberados para este acesso.'; return; }
+    const sel=$('#selSetor');
+    if(ordered.length>1){
+      ADMIN=true;
+      sel.classList.remove('hidden');
+      sel.innerHTML = ordered.map(sl=>{ const i=MAN.setores.find(x=>x.slug===sl); return `<option value="${sl}">${i.nome}</option>`; }).join('');
+      sel.onchange=()=>aplicarSetor(sel.value);
+    } else { ADMIN=false; sel.classList.add('hidden'); }
+    aplicarSetor(ordered[0]);
+  });
 }
 
 /* ---------- carrega arquivo de dados sob demanda ---------- */
@@ -64,7 +68,9 @@ function aplicarSetor(slug){
   SETOR = window.SETORES[slug];
   const info = MAN.setores.find(s=>s.slug===slug);
   $('#topoSetor').textContent = SETOR.setor;
-  $('#topoSub').textContent = info.clientes+' clientes';
+  let sub = info.clientes+' clientes';
+  if(window.__ACC && window.__ACC.escopo!=='setor') sub += ' · ' + window.__ACC.label;
+  $('#topoSub').textContent = sub;
   if(ADMIN) $('#selSetor').value=slug;
   popularClientes();
   popularMarcas();
@@ -207,5 +213,5 @@ $('#selCliente').onchange=function(){
 ['fCliBusca','fCliCurva','fCliStatus'].forEach(id=>$('#'+id).addEventListener('input',renderCliente));
 
 /* ---------- auto-login na recarga ---------- */
-const savedSlug=sessionStorage.getItem('nc_slug'), savedFk=sessionStorage.getItem('nc_fk');
-if(savedSlug && savedFk && MAN.acessos.some(a=>a.slug===savedSlug)) iniciar(savedSlug, savedFk);
+const savedFk=sessionStorage.getItem('nc_fk'), savedAccRaw=sessionStorage.getItem('nc_acc');
+if(savedFk && savedAccRaw){ try{ const acc=JSON.parse(savedAccRaw); if(MAN.acessos.some(a=>a.h===acc.h)) iniciar(savedFk, acc); }catch(e){} }

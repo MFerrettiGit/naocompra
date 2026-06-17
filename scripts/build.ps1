@@ -1,4 +1,4 @@
-# build.ps1 - Gera os dados do site "nãocompra" (produtos que cada setor/cliente NÃO vende).
+﻿# build.ps1 - Gera os dados do site "nãocompra" (produtos que cada setor/cliente NÃO vende).
 # Fontes:
 #   - Estoque (compras\dados\estoque.js) -> base "fiel" dos produtos vendidos em 65 dias + curva ABC
 #   - produtos_meta.json (lancamentos)   -> situacao de linha (EM LINHA / FORA / SUSPENSO)
@@ -15,9 +15,16 @@ param(
   [int]$MinClientes  = 5
 )
 $ErrorActionPreference = "Stop"
+function StripAccents([string]$s){
+  $d = $s.Normalize([Text.NormalizationForm]::FormD)
+  $sb = New-Object System.Text.StringBuilder
+  foreach($ch in $d.ToCharArray()){
+    if([Globalization.CharUnicodeInfo]::GetUnicodeCategory($ch) -ne [Globalization.UnicodeCategory]::NonSpacingMark){ [void]$sb.Append($ch) }
+  }
+  $sb.ToString()
+}
 function Slug([string]$s){
-  $t = $s.ToLower()
-  $t = $t -replace '[áàâãä]','a' -replace '[éèêë]','e' -replace '[íìîï]','i' -replace '[óòôõö]','o' -replace '[úùûü]','u' -replace 'ç','c'
+  $t = (StripAccents $s).ToLower()
   $t = $t -replace '[^a-z0-9]+','-' -replace '(^-+|-+$)',''
   return $t
 }
@@ -133,42 +140,62 @@ foreach($setorNome in ($setores.Keys | Sort-Object)){
 }
 Write-Host "Setores incluidos: $incluidos"
 
-# ---- ACESSOS (senhas) ----
-$acessosPath = Join-Path $Root "scripts\acessos.json"
-if(Test-Path $acessosPath){ $acc = Get-Content $acessosPath -Raw | ConvertFrom-Json } else { $acc = [ordered]@{} }
-$accMap = @{}; if($acc){ foreach($p in $acc.PSObject.Properties){ $accMap[$p.Name]=$p.Value } }
-$rand = New-Object System.Random(20260617)
-$chars = 'abcdefghjkmnpqrstuvwxyz23456789'.ToCharArray()
-if(-not $accMap.ContainsKey('*')){ $pa='adm'; for($i=0;$i -lt 9;$i++){ $pa += $chars[$rand.Next($chars.Length)] }; $accMap['*']=$pa }
-foreach($m in $manSet){
-  $slug=$m.slug
-  if(-not $accMap.ContainsKey($slug)){
-    $pw = ($slug -replace '[^a-z]','').Substring(0,[Math]::Min(4,($slug -replace '[^a-z]','').Length))
-    for($i=0;$i -lt 4;$i++){ $pw += $chars[$rand.Next($chars.Length)] }
-    $accMap[$slug]=$pw
-  }
-}
-($accMap | ConvertTo-Json) | Set-Content $acessosPath -Encoding UTF8
+# ---- ACESSOS: usa as MESMAS senhas do site de campanhas (skill senhas) ----
+# Fonte da verdade = references\senhas.json (escopos todos / regional / setor).
+$senhasPath = "C:\Users\COMPRASD\.claude\skills\senhas\references\senhas.json"
+$SEN = [IO.File]::ReadAllText($senhasPath, [Text.UTF8Encoding]::new($false)) | ConvertFrom-Json
 
-# ---- EMITE arquivos de dados (nomeados por fkey) ----
+function Norm([string]$s){
+  ((StripAccents $s).ToUpper() -replace '[^A-Z0-9]','')
+}
+# setor -> regional (extraido do roster das campanhas; valores conforme campanhas)
+$regionalMembros = @{
+  'NORDESTE' = @('AMERICANA','FRANCA','RIOCLARO','SAOCARLOS','CIRCUITO','RIBEIRAOPRETO','SJBOAVISTA','SETORPIRACICABA')
+  'SUL'      = @('ATIBAIA','INDAIATUBA','CAMPINASNORTE','JUNDIAI','CARAGUATATUBA','SOROCABA','SJDOSCAMPOS','ITAPETININGA')
+}
+# indice normalizado -> slug (dos setores que existem na base)
+$normToSlug = @{}; foreach($m in $manSet){ $normToSlug[(Norm $m.nome)] = $m.slug }
+$slugToNome = @{}; foreach($m in $manSet){ $slugToNome[$m.slug] = $m.nome }
+function SlugDoValor([string]$valor){
+  $vn = Norm $valor
+  if($normToSlug.ContainsKey($vn)){ return $normToSlug[$vn] }
+  foreach($k in $normToSlug.Keys){ if($k.Contains($vn) -or $vn.Contains($k)){ return $normToSlug[$k] } }
+  return $null
+}
+
 $dirD = Join-Path $Root "dados\d"
 New-Item -ItemType Directory -Force -Path $dirD | Out-Null
 Get-ChildItem $dirD -Filter *.js -ErrorAction SilentlyContinue | Remove-Item -Force
+
 $acessosOut = New-Object System.Collections.ArrayList
-foreach($m in $manSet){
-  $slug=$m.slug; $fk=Fkey $accMap[$slug]
-  $js = "(window.SETORES=window.SETORES||{})['$slug'] = " + ($objs[$slug] | ConvertTo-Json -Depth 8 -Compress) + ";"
-  Set-Content -Path (Join-Path $dirD "$fk.js") -Value $js -Encoding UTF8
-  [void]$acessosOut.Add([ordered]@{ h=(Sha256Hex $accMap[$slug]); slug=$slug; label=$m.nome })
+$tab = "SENHA;ESCOPO;SETORES_LIBERADOS`r`n"
+foreach($a in $SEN.acessos){
+  $esc = $a.escopo
+  $allowed = New-Object System.Collections.Generic.List[string]
+  if($esc -eq 'todos'){
+    foreach($m in $manSet){ $allowed.Add($m.slug) }
+    $label = "Todos - " + $a.nome
+  } elseif($esc -eq 'regional'){
+    $membros = $regionalMembros[$a.valor]
+    if($membros){ foreach($mn in $membros){ if($normToSlug.ContainsKey($mn)){ $allowed.Add($normToSlug[$mn]) } } }
+    $label = "Regional " + $a.valor
+  } else { # setor
+    $sl = SlugDoValor $a.valor
+    if($sl){ $allowed.Add($sl); $label = "Setor " + $slugToNome[$sl] } else { $label = "Setor " + $a.valor }
+  }
+  $allowed = $allowed | Select-Object -Unique
+  if(-not $allowed -or $allowed.Count -eq 0){ Write-Host "  (sem setor na base) senha=$($a.senha) escopo=$esc valor=$($a.valor)" }
+  # escreve arquivo de dados nomeado pela fkey da senha (so quem tem a senha calcula)
+  $fk = Fkey $a.senha
+  $sb = New-Object System.Text.StringBuilder
+  foreach($slug in $allowed){ [void]$sb.AppendLine( "(window.SETORES=window.SETORES||{})['$slug'] = " + ($objs[$slug] | ConvertTo-Json -Depth 8 -Compress) + ";" ) }
+  Set-Content -Path (Join-Path $dirD "$fk.js") -Value $sb.ToString() -Encoding UTF8
+  # usa o hash oficial do senhas.json (mesma comparacao do site campanhas)
+  [void]$acessosOut.Add([ordered]@{ h=$a.hash; escopo=$esc; valor=([string]$a.valor); label=$label })
+  $setoresStr = ($allowed | ForEach-Object { $slugToNome[$_] }) -join ', '
+  $tab += "$($a.senha);$esc;$setoresStr`r`n"
 }
-# Admin: bundle unico com TODOS os setores, nomeado pela fkey da senha admin
-$fkAdmin = Fkey $accMap['*']
-$sb = New-Object System.Text.StringBuilder
-foreach($slug in ($objs.Keys | Sort-Object)){
-  [void]$sb.AppendLine( "(window.SETORES=window.SETORES||{})['$slug'] = " + ($objs[$slug] | ConvertTo-Json -Depth 8 -Compress) + ";" )
-}
-Set-Content -Path (Join-Path $dirD "$fkAdmin.js") -Value $sb.ToString() -Encoding UTF8
-[void]$acessosOut.Add([ordered]@{ h=(Sha256Hex $accMap['*']); slug='*'; label='ADMIN (todos os setores)' })
+Write-Host "Acessos (senhas do campanhas): $($acessosOut.Count)"
 
 # manifest (NAO contem fkey: o nome do arquivo so se obtem com a senha)
 $manObj=[ordered]@{ ref=$refDate; atualizadoEm=(Get-Date -Format 'dd/MM/yyyy HH:mm'); baseTotal=$base.Count; curvaA=$curvaA.Count; setores=$manSet; acessos=$acessosOut }
@@ -176,12 +203,9 @@ $manJs = "window.MANIFEST = " + ($manObj | ConvertTo-Json -Depth 6 -Compress) + 
 Set-Content -Path (Join-Path $Root "dados\manifest.js") -Value $manJs -Encoding UTF8
 
 # tabela de senhas legivel (NAO publicada)
-$tab = "SETOR;SENHA`r`n"
-foreach($m in ($manSet | Sort-Object nome)){ $tab += "$($m.nome);$($accMap[$m.slug])`r`n" }
-$tab += "ADMIN (todos);$($accMap['*'])`r`n"
 Set-Content -Path (Join-Path $Root "scripts\SENHAS.csv") -Value $tab -Encoding UTF8
 try { Copy-Item (Join-Path $Root "scripts\SENHAS.csv") "C:\Users\COMPRASD\Downloads\naocompra-SENHAS.csv" -Force -ErrorAction Stop }
 catch { Copy-Item (Join-Path $Root "scripts\SENHAS.csv") ("C:\Users\COMPRASD\Downloads\naocompra-SENHAS-" + (Get-Date -Format 'HHmmss') + ".csv") -Force }
 
-Write-Host "`nOK. base=$($base.Count) setores=$incluidos curvaA=$($curvaA.Count) ref=$refDate"
-Write-Host "Senhas em: $acessosPath  e  Downloads\naocompra-SENHAS.csv"
+Write-Host "`nOK. base=$($base.Count) setores=$incluidos curvaA=$($curvaA.Count) acessos=$($acessosOut.Count) ref=$refDate"
+Write-Host "Senhas (referencia): Downloads\naocompra-SENHAS.csv"
