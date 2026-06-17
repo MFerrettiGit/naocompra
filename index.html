@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>NÃO COMPRA · M. Ferretti</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login" class="login">
+  <div class="login-card">
+    <img src="logo-ferretti.png" alt="Ferretti" class="login-logo">
+    <h1>NÃO COMPRA</h1>
+    <p class="sub">Relatório de produtos que o seu setor ainda não vende.</p>
+    <input type="password" id="pw" placeholder="Sua senha de acesso" autocomplete="off">
+    <button id="btnEntrar">Entrar</button>
+    <p id="loginErr" class="err"></p>
+  </div>
+  <footer class="login-foot">M. Ferretti Distribuidora</footer>
+</div>
+
+<!-- APP -->
+<div id="app" class="app hidden">
+  <header class="topo">
+    <img src="logo-ferretti.png" alt="Ferretti" class="topo-logo">
+    <div class="topo-meta">
+      <strong id="topoSetor">—</strong>
+      <span id="topoSub" class="muted"></span>
+    </div>
+    <div class="topo-right">
+      <select id="selSetor" class="hidden"></select>
+      <button id="btnTema" class="ghost" title="Tema">◐</button>
+      <button id="btnSair" class="ghost">Sair</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-tab="resumo">Resumo</button>
+    <button class="tab" data-tab="setor">Por setor</button>
+    <button class="tab" data-tab="cliente">Por cliente</button>
+  </nav>
+
+  <!-- RESUMO -->
+  <section id="tab-resumo" class="painel">
+    <div class="cards">
+      <div class="card"><span class="card-n" id="cCobertura">—</span><span class="card-l">Produtos da base que o setor já vendeu</span><div class="bar"><div id="barCob"></div></div></div>
+      <div class="card alerta"><span class="card-n" id="cNaoVende">—</span><span class="card-l">Produtos que o setor NUNCA vendeu</span></div>
+      <div class="card critico"><span class="card-n" id="cCurvaA">—</span><span class="card-l">Curva A não vendidos <em>(obrigatórios)</em></span></div>
+      <div class="card"><span class="card-n" id="cClientes">—</span><span class="card-l">Clientes no setor</span></div>
+    </div>
+
+    <h2>🔴 Curva A que o setor não vende <span class="muted">— prioridade máxima</span></h2>
+    <p class="muted" id="resumoCurvaAvazio" style="display:none">Parabéns! O setor vende todos os produtos curva A. 🎉</p>
+    <div class="tbl-wrap"><table id="tblResumoA"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th></tr></thead><tbody></tbody></table></div>
+
+    <h2>Maiores oportunidades <span class="muted">— curva A/B vendidas a poucos clientes do setor</span></h2>
+    <div class="tbl-wrap"><table id="tblOportSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Clientes que compram</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- POR SETOR -->
+  <section id="tab-setor" class="painel hidden">
+    <div class="filtros">
+      <input type="search" id="fSetorBusca" placeholder="Buscar produto ou código…">
+      <select id="fSetorMarca"></select>
+      <select id="fSetorCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
+      <select id="fSetorStatus">
+        <option value="naovende">Só os que NÃO vende</option>
+        <option value="nunca">Nunca vendeu</option>
+        <option value="parou">Parou de vender</option>
+        <option value="vende">Vende atualmente</option>
+        <option value="">Todos</option>
+      </select>
+      <label class="jan">Vende = comprou nos últimos
+        <select id="fJanela"><option value="90">90</option><option value="120" selected>120</option><option value="180">180</option><option value="365">365</option><option value="99999">qualquer</option></select> dias
+      </label>
+    </div>
+    <p class="muted" id="setorCount"></p>
+    <div class="tbl-wrap"><table id="tblSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Última venda</th><th>Clientes</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <!-- POR CLIENTE -->
+  <section id="tab-cliente" class="painel hidden">
+    <div class="filtros">
+      <select id="selCliente"><option value="">— escolha um cliente —</option></select>
+      <input type="search" id="fCliBusca" placeholder="Buscar produto…">
+      <select id="fCliCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
+      <select id="fCliStatus">
+        <option value="naocompra">Só o que NÃO compra</option>
+        <option value="oportunidade">Oportunidades (setor vende, ele não)</option>
+        <option value="compra">Só o que compra</option>
+        <option value="">Todos</option>
+      </select>
+    </div>
+    <div id="cliResumo" class="cards mini hidden">
+      <div class="card"><span class="card-n" id="ccCompra">—</span><span class="card-l">Produtos que compra</span></div>
+      <div class="card alerta"><span class="card-n" id="ccNao">—</span><span class="card-l">Não compra</span></div>
+      <div class="card critico"><span class="card-n" id="ccA">—</span><span class="card-l">Curva A que não compra</span></div>
+    </div>
+    <p class="muted" id="cliCount"></p>
+    <div class="tbl-wrap"><table id="tblCli"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Setor vende?</th><th>Última compra</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer class="rodape">
+    <span>M. Ferretti Distribuidora</span>
+    <span class="muted" id="rodapeAtual"></span>
+  </footer>
+</div>
+
+<script src="dados/manifest.js"></script>
+<script src="dados/base.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
