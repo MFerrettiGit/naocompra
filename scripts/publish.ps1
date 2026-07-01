@@ -49,8 +49,10 @@ if(-not (Test-Path "$RepoDir\.git")){ git init | Out-Null; git branch -M main }
 git add -A
 $pendente = git status --porcelain
 if($pendente){ git commit -m $Message | Out-Null } else { Write-Output "Nada para commitar." }
-git push "https://$($Owner):$tok@github.com/$Owner/$Repo.git" main
-Write-Output ("PUSH_EXIT=" + $LASTEXITCODE)
+git push "https://$($Owner):$tok@github.com/$Owner/$Repo.git" main 2>$null
+$pushExit = $LASTEXITCODE
+Write-Output ("PUSH_EXIT=" + $pushExit)
+if ($pushExit -ne 0) { throw "git push falhou (exit $pushExit)" }
 
 # 3) Ativa GitHub Pages (branch main, raiz)
 try {

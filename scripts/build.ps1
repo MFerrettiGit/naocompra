@@ -13,6 +13,7 @@
 [CmdletBinding()]
 param(
   [string]$Xlsx      = "",
+  [string]$Tsv       = "",
   [string]$Root      = "C:\Users\COMPRASD\naocompra",
   [string]$EstoqueJs = "C:\Users\COMPRASD\compras\dados\estoque.js",
   [string]$MetaJson  = "C:\Users\COMPRASD\lancamentos\dados_raw\produtos_meta.json",
@@ -154,11 +155,11 @@ Write-Host "Curva A: $($curvaA.Count)"
 $ci = [System.Globalization.CultureInfo]::InvariantCulture
 $vendas = $null
 
+function Coalesce { foreach($v in $args){ if($null -ne $v -and "$v" -ne ''){ return $v } }; return "" }
+
 if($Xlsx -ne ""){
   Write-Host "Lendo vendas de xlsx: $Xlsx"
   $rawRows = Read-XlsxData $Xlsx
-  # Normaliza nomes de colunas (DATA/data, PRODUTO/produto, etc.)
-  function Coalesce { foreach($v in $args){ if($null -ne $v -and "$v" -ne ''){ return $v } }; return "" }
   $vendas = $rawRows | ForEach-Object {
     $r = $_
     [PSCustomObject]@{
@@ -174,6 +175,26 @@ if($Xlsx -ne ""){
       setor       = Coalesce $r.SETOR $r.setor
       qtd         = Coalesce $r.QTD $r.qtd
       valor       = Coalesce $r.VALOR $r.valor
+    }
+  }
+} elseif($Tsv -ne ""){
+  Write-Host "Lendo vendas de TSV: $Tsv"
+  $rawRows = Import-Csv $Tsv -Delimiter "`t" -Encoding UTF8
+  $vendas = $rawRows | ForEach-Object {
+    $r = $_
+    [PSCustomObject]@{
+      data        = Coalesce $r.DATA
+      produto     = Coalesce $r.PRODUTO
+      descricao   = Coalesce $r.DESCAO $r.DESCRICAO
+      marca       = Coalesce $r.MARCA
+      linha       = Coalesce $r.LINHA
+      cliente     = Coalesce $r.CLIENTE
+      nomecliente = Coalesce $r.NOME_CLIENTE
+      rede        = Coalesce $r.REDE ""
+      vendedor    = Coalesce $r.VENDEDOR
+      setor       = Coalesce $r.SETOR
+      qtd         = Coalesce $r.QTD
+      valor       = Coalesce $r.VALOR
     }
   }
 } else {
