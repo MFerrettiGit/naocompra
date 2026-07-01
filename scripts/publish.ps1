@@ -12,7 +12,7 @@ param(
   [string]$Repo  = "naocompra",
   [switch]$Private
 )
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $sig = @"
 using System;
 using System.Runtime.InteropServices;
