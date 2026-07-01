@@ -166,7 +166,8 @@ if($Xlsx -ne ""){
       marca       = ($r.MARCA ?? $r.marca)
       linha       = ($r.LINHA ?? $r.linha)
       cliente     = ($r.CLIENTE ?? $r.cliente)
-      nomecliente = ($r.NOME_CLIENTE ?? $r.NOME_CLIENTE ?? $r.nomecliente)
+      nomecliente = ($r.NOME_CLIENTE ?? $r.nomecliente)
+      rede        = ($r.REDE ?? $r.rede ?? "")
       vendedor    = ($r.VENDEDOR ?? $r.vendedor)
       setor       = ($r.SETOR ?? $r.setor)
       qtd         = ($r.QTD ?? $r.qtd)
@@ -197,7 +198,7 @@ foreach($row in $vendas){
   $S = $setores[$setor]
   if(-not $S.prods.ContainsKey($cod)){ $S.prods[$cod] = @{ q=0.0; v=0.0; ult=''; cli=(New-Object 'System.Collections.Generic.HashSet[string]') } }
   $sp = $S.prods[$cod]; $sp.q += $qt; $sp.v += $val; if($dt -gt $sp.ult){ $sp.ult = $dt }; [void]$sp.cli.Add($cli)
-  if(-not $S.clientes.ContainsKey($cli)){ $S.clientes[$cli] = @{ nome=$row.nomecliente; prods=@{} } }
+  if(-not $S.clientes.ContainsKey($cli)){ $S.clientes[$cli] = @{ nome=$row.nomecliente; rede=($row.rede ?? ""); prods=@{} } }
   $C = $S.clientes[$cli]
   if(-not $C.prods.ContainsKey($cod)){ $C.prods[$cod] = @{ q=0.0; v=0.0; ult='' } }
   $cp = $C.prods[$cod]; $cp.q += $qt; $cp.v += $val; if($dt -gt $cp.ult){ $cp.ult = $dt }
@@ -228,7 +229,7 @@ foreach($setorNome in ($setores.Keys | Sort-Object)){
   foreach($cli in ($S.clientes.Keys | Sort-Object)){
     $C=$S.clientes[$cli]; $pr=[ordered]@{}
     foreach($cod in $C.prods.Keys){ $cp=$C.prods[$cod]; $pr[$cod]=@([math]::Round($cp.v,2),$cp.ult) }
-    [void]$cliArr.Add([ordered]@{ c=$cli; n=$C.nome; p=$pr })
+    [void]$cliArr.Add([ordered]@{ c=$cli; n=$C.nome; r=$C.rede; p=$pr })
   }
   $aNaoVende = @($curvaA | Where-Object { -not $S.prods.ContainsKey($_) }).Count
   $vendeSetor = $S.prods.Count

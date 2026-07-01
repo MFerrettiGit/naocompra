@@ -125,6 +125,22 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
 .card-hint{font-size:.72rem;color:var(--muted);margin-top:4px;font-family:'Plus Jakarta Sans';font-weight:600;opacity:.7}
 .card-click:hover .card-hint{opacity:1;color:var(--azul)}
 
+/* ===== CHIPS DE CLIENTES ===== */
+.cli-sel-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.btn-sm{padding:7px 14px;border-radius:10px;border:1px solid var(--azul);background:var(--azul);color:#fff;font-size:.8rem;font-weight:700;font-family:'Plus Jakarta Sans';cursor:pointer}
+.btn-sm:hover{background:var(--azul-2)}
+.ghost-btn{background:transparent;color:var(--azul)}
+.ghost-btn:hover{background:var(--line);color:var(--azul)}
+.cli-sel-count{font-size:.82rem;color:var(--muted);font-weight:600;flex:1}
+.cli-chips{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow-y:auto;padding:6px 0;margin-bottom:4px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:.78rem;cursor:pointer;transition:background .1s,border-color .1s;user-select:none;white-space:nowrap}
+.chip:hover{border-color:var(--azul);background:rgba(43,47,168,.06)}
+.chip.sel{background:var(--azul);color:#fff;border-color:var(--azul)}
+.chip .chip-rede{font-size:.68rem;opacity:.7;margin-left:2px}
+.comp-none{color:var(--vermelho);font-weight:700}
+.comp-all{color:var(--verde-2);font-weight:700}
+.comp-partial{color:var(--ambar);font-weight:700}
+
 @media(max-width:600px){
   .cards.mini{grid-template-columns:1fr}
   .filtros input[type=search]{min-width:100%}
@@ -237,21 +253,35 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
 
     <!-- POR CLIENTE -->
     <section id="tab-cliente" class="painel hidden">
+      <!-- Filtros de seleção de clientes -->
       <div class="filtros">
-        <select id="selCliente"><option value="">— escolha um cliente —</option></select>
+        <select id="fCliRede"><option value="">Todas as redes</option></select>
+        <input type="search" id="fCliSearch" placeholder="Buscar cliente…">
+      </div>
+      <div class="cli-sel-bar">
+        <button id="btnSelectAll" class="btn-sm" type="button">Selecionar todos</button>
+        <button id="btnClearSel" class="btn-sm ghost-btn" type="button">Limpar</button>
+        <span id="cliSelCount" class="cli-sel-count">Nenhum cliente selecionado</span>
+      </div>
+      <div id="cliChips" class="cli-chips"></div>
+
+      <!-- Filtros de produto (aparece após seleção) -->
+      <div class="filtros" id="cliProdFiltros" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
         <input type="search" id="fCliBusca" placeholder="Buscar produto…">
         <select id="fCliCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
         <select id="fCliStatus">
-          <option value="naocompra">Só o que NÃO compra</option>
-          <option value="oportunidade">Oportunidades (setor vende, ele não)</option>
-          <option value="compra">Só o que compra</option>
+          <option value="naocompra">Não compra / Nenhum compra</option>
+          <option value="oportunidade">Oportunidade (setor vende, não compra)</option>
+          <option value="parcial">Parcial (alguns compram)</option>
+          <option value="compra">Compra / Todos compram</option>
           <option value="">Todos</option>
         </select>
       </div>
-      <div id="cliResumo" class="cards mini hidden">
-        <div class="card"><span class="card-n" id="ccCompra">—</span><span class="card-l">Produtos que compra</span></div>
-        <div class="card alerta"><span class="card-n" id="ccNao">—</span><span class="card-l">Não compra</span></div>
-        <div class="card critico"><span class="card-n" id="ccA">—</span><span class="card-l">Curva A que não compra</span></div>
+
+      <div id="cliResumo" class="cards mini hidden" style="margin-top:16px">
+        <div class="card"><span class="card-n" id="ccCompra">—</span><span class="card-l" id="ccComprLbl">Todos compram</span></div>
+        <div class="card alerta"><span class="card-n" id="ccNao">—</span><span class="card-l" id="ccNaoLbl">Nenhum compra</span></div>
+        <div class="card critico"><span class="card-n" id="ccA">—</span><span class="card-l">Curva A · nenhum compra</span></div>
       </div>
       <p class="muted" id="cliCount"></p>
       <div class="tbl-wrap"><table id="tblCli"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Setor vende?</th><th>Última compra</th></tr></thead><tbody></tbody></table></div>

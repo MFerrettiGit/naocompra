@@ -277,60 +277,156 @@ function renderSetor(){
     : '<tr><td colspan="7" class="vazio">Nenhum produto neste filtro.</td></tr>';
 }
 
-/* ===== CLIENTE ===== */
-let CLI = null;
+/* ===== CLIENTE (multi-seleção) ===== */
+let CLIS = [];     // array de objetos cliente selecionados
+let _allClis = []; // todos os clientes do setor, ordenados
+
 function popularClientes(){
-  const sel = $('#selCliente');
-  const cs = [...SETOR.clientes].sort((a,b) => a.n.localeCompare(b.n));
-  sel.innerHTML = '<option value="">— escolha um cliente —</option>' + cs.map(c => `<option value="${c.c}">${c.n}</option>`).join('');
-  CLI = null; $('#cliResumo').classList.add('hidden'); $('#tblCli tbody').innerHTML = ''; $('#cliCount').textContent = '';
+  _allClis = [...SETOR.clientes].sort((a,b) => a.n.localeCompare(b.n));
+  CLIS = [];
+  // popular select de rede
+  const redes = [...new Set(_allClis.map(c => c.r || '').filter(Boolean))].sort();
+  $('#fCliRede').innerHTML = '<option value="">Todas as redes</option>'
+    + redes.map(r => `<option value="${r}">${r}</option>`).join('');
+  $('#fCliSearch').value = '';
+  renderChips();
+  $('#cliResumo').classList.add('hidden');
+  $('#tblCli tbody').innerHTML = '';
+  $('#cliCount').textContent = '';
+  $('#cliProdFiltros').style.display = 'none';
 }
+
+function renderChips(){
+  const rede = $('#fCliRede').value;
+  const busca = $('#fCliSearch').value.toLowerCase().trim();
+  const visivel = _allClis.filter(c =>
+    (!rede || (c.r || '') === rede) &&
+    (!busca || c.n.toLowerCase().includes(busca) || c.c.toLowerCase().includes(busca))
+  );
+  const selSet = new Set(CLIS.map(c => c.c));
+  $('#cliChips').innerHTML = visivel.map(c => {
+    const sel = selSet.has(c.c);
+    const redeTag = c.r ? `<span class="chip-rede">${c.r}</span>` : '';
+    return `<div class="chip${sel?' sel':''}" data-cod="${c.c}">${c.n}${redeTag}</div>`;
+  }).join('');
+  $$('#cliChips .chip').forEach(el => {
+    el.onclick = () => {
+      const cod = el.dataset.cod;
+      const obj = _allClis.find(c => c.c === cod);
+      if(selSet.has(cod)){
+        CLIS = CLIS.filter(c => c.c !== cod);
+      } else {
+        CLIS.push(obj);
+      }
+      renderChips();
+      renderCliente();
+    };
+  });
+  const total = visivel.length, sel = visivel.filter(c => selSet.has(c.c)).length;
+  const txt = sel === 0
+    ? (visivel.length < _allClis.length ? `${visivel.length} cliente(s) filtrado(s) — nenhum selecionado` : 'Nenhum cliente selecionado')
+    : `${sel} de ${_allClis.length} cliente(s) selecionado(s)`;
+  $('#cliSelCount').textContent = txt;
+}
+
+document.getElementById('btnSelectAll').onclick = () => {
+  const rede = $('#fCliRede').value;
+  const busca = $('#fCliSearch').value.toLowerCase().trim();
+  const visivel = _allClis.filter(c =>
+    (!rede || (c.r || '') === rede) &&
+    (!busca || c.n.toLowerCase().includes(busca) || c.c.toLowerCase().includes(busca))
+  );
+  const selSet = new Set(CLIS.map(c => c.c));
+  visivel.forEach(c => { if(!selSet.has(c.c)) CLIS.push(c); });
+  renderChips(); renderCliente();
+};
+document.getElementById('btnClearSel').onclick = () => {
+  CLIS = []; renderChips(); renderCliente();
+};
+
 function renderCliente(){
-  if(!CLI) return;
+  const N = CLIS.length;
+  if(N === 0){
+    $('#cliResumo').classList.add('hidden');
+    $('#tblCli tbody').innerHTML = '';
+    $('#cliCount').textContent = '';
+    $('#cliProdFiltros').style.display = 'none';
+    const thead = $('#tblCli thead tr');
+    thead.innerHTML = '<th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Setor vende?</th><th>Última compra</th>';
+    return;
+  }
+  $('#cliProdFiltros').style.display = '';
   const busca = $('#fCliBusca').value.toLowerCase().trim();
   const fc = $('#fCliCurva').value, fs = $('#fCliStatus').value;
-  let nCompra=0, nNao=0, nA=0;
+  const multi = N > 1;
+
+  // atualizar cabeçalho da tabela
+  const thead = $('#tblCli thead tr');
+  if(multi){
+    thead.innerHTML = '<th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Compradores</th><th>Setor vende?</th><th>Última compra</th>';
+    $('#ccComprLbl').textContent = 'Todos compram';
+    $('#ccNaoLbl').textContent = 'Nenhum compra';
+  } else {
+    thead.innerHTML = '<th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Setor vende?</th><th>Última compra</th>';
+    $('#ccComprLbl').textContent = 'Compra';
+    $('#ccNaoLbl').textContent = 'Não compra';
+  }
+
+  let nTodos=0, nNenhum=0, nA=0;
   const rows = [];
   for(const c of COD_ORDEM){
     const p = PRODS[c];
-    const cp = CLI.p[c];
     const sp = SETOR.setorProds[c];
-    const compra = !!cp;
-    if(compra) nCompra++; else { nNao++; if(p.c==='A') nA++; }
+    // contar quantos clientes compram este produto
+    let compradores = 0, ultData = null;
+    for(const cli of CLIS){
+      const cp = cli.p[c];
+      if(cp){ compradores++; if(!ultData || cp[1] > ultData) ultData = cp[1]; }
+    }
+    const oport = compradores === 0 && !!sp;
+    if(compradores === N) nTodos++;
+    if(compradores === 0){ nNenhum++; if(p.c==='A') nA++; }
     if(fc && p.c!==fc) continue;
     if(busca && !(c.toLowerCase().includes(busca)||p.d.toLowerCase().includes(busca))) continue;
-    const oport = !compra && !!sp;
-    if(fs==='naocompra' && compra) continue;
-    if(fs==='compra' && !compra) continue;
+    if(fs==='naocompra' && compradores !== 0) continue;
+    if(fs==='compra' && compradores !== N) continue;
     if(fs==='oportunidade' && !oport) continue;
-    rows.push({c,p,cp,sp,compra,oport});
+    if(fs==='parcial' && !(compradores>0 && compradores<N)) continue;
+    rows.push({c,p,sp,compradores,ultData,oport});
   }
   rows.sort((a,b) => {
-    if(a.compra!==b.compra) return a.compra?1:-1;
-    const o={A:0,B:1,C:2,D:3}; return o[a.p.c]-o[b.p.c] || a.p.d.localeCompare(b.p.d);
+    const ao={A:0,B:1,C:2,D:3};
+    if(a.compradores !== b.compradores) return a.compradores - b.compradores;
+    return ao[a.p.c]-ao[b.p.c] || a.p.d.localeCompare(b.p.d);
   });
-  $('#ccCompra').textContent = nCompra; $('#ccNao').textContent = nNao; $('#ccA').textContent = nA;
+  $('#ccCompra').textContent = nTodos;
+  $('#ccNao').textContent = nNenhum;
+  $('#ccA').textContent = nA;
   $('#cliResumo').classList.remove('hidden');
   $('#cliCount').textContent = rows.length + ' produto(s)';
   $('#tblCli tbody').innerHTML = rows.length ? rows.map(r => {
-    const sit = r.compra ? '<span class="st st-vende">Compra</span>'
-      : `<span class="st st-nunca">Não compra</span>${r.oport?'<span class="tag-op">OPORTUNIDADE</span>':''}`;
+    let sitCol;
+    if(multi){
+      const cls = r.compradores === N ? 'comp-all' : r.compradores === 0 ? 'comp-none' : 'comp-partial';
+      const label = r.compradores === N ? 'Todos' : r.compradores === 0 ? 'Nenhum' : r.compradores + '/' + N;
+      sitCol = `<span class="${cls}">${label}</span>${r.oport?'<span class="tag-op">OPORTUNIDADE</span>':''}`;
+    } else {
+      sitCol = r.compradores > 0 ? '<span class="st st-vende">Compra</span>'
+        : `<span class="st st-nunca">Não compra</span>${r.oport?'<span class="tag-op">OPORTUNIDADE</span>':''}`;
+    }
     const setorVende = r.sp ? `<span class="simn sim">Sim</span> <span class="muted">(${r.sp[2]} cli.)</span>` : '<span class="nao">Não</span>';
     return `<tr><td class="cod">${r.c}</td><td>${r.p.d}</td><td>${r.p.m}</td><td>${pill(r.p.c)}</td>
-      <td>${sit}</td><td>${setorVende}</td><td>${r.compra?fmtData(r.cp[1]):'—'}</td></tr>`;
+      <td>${sitCol}</td><td>${setorVende}</td><td>${fmtData(r.ultData)}</td></tr>`;
   }).join('') : '<tr><td colspan="7" class="vazio">Nenhum produto neste filtro.</td></tr>';
 }
-$('#selCliente').onchange = function(){
-  CLI = this.value ? SETOR.clientes.find(c => c.c===this.value) : null;
-  if(!CLI){ $('#cliResumo').classList.add('hidden'); $('#tblCli tbody').innerHTML=''; $('#cliCount').textContent=''; return; }
-  renderCliente();
-};
 
 /* ===== LISTENERS FILTROS ===== */
 ['fSetorBusca','fSetorMarca','fSetorCurva','fSetorStatus','fJanela'].forEach(id => {
   $('#'+id).addEventListener('input', () => { renderSetor(); if(id==='fJanela') renderResumo(); });
 });
 ['fCliBusca','fCliCurva','fCliStatus'].forEach(id => $('#'+id).addEventListener('input', renderCliente));
+$('#fCliRede').addEventListener('change', () => renderChips());
+$('#fCliSearch').addEventListener('input', () => renderChips());
 
 /* ===== AUTO-LOGIN NA RECARGA ===== */
 const savedFk = sessionStorage.getItem('nc_fk'), savedAccRaw = sessionStorage.getItem('nc_acc');
