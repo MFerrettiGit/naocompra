@@ -5,109 +5,259 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <title>NÃO COMPRA · M. Ferretti</title>
+<script>(function(){try{if(localStorage.getItem('ferretti-theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --azul:#2B2FA8;--azul-2:#3a3fd0;--azul-dark:#1c1f78;
+  --verde:#34c759;--verde-2:#1f9d55;
+  --ambar:#c8841a;--vermelho:#d6324a;
+  --bg:#f4f6fb;--card:#ffffff;--ink:#16182e;--muted:#6b6f8a;--line:#e7eaf3;
+  /* compat com styles.css */
+  --txt:#16182e;--linha:#e7eaf3;--azul2:#3a3fd0;--verde:#1f9d55;--shadow:0 1px 3px rgba(20,22,60,.08),0 4px 16px rgba(20,22,60,.06);
+}
+:root[data-theme="dark"]{
+  --bg:#0e1018;--card:#181b27;--ink:#eceef6;--muted:#9aa0bd;--line:#2a2f42;--verde-2:#34d36b;
+  --txt:#eceef6;--linha:#2a2f42;--azul:#6f74ff;--azul2:#8d92ff;--shadow:0 1px 3px rgba(0,0,0,.4);
+}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+a{color:inherit;text-decoration:none}
+
+/* ===== GATE ===== */
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,var(--azul-dark),var(--azul));display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.gate-card{background:var(--card);border-radius:20px;padding:36px 30px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center}
+.gate-card img{height:38px;margin-bottom:20px}
+.gate-card h2{font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.35rem;margin-bottom:6px;color:var(--ink)}
+.gate-card p{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+.gate-card input{width:100%;padding:13px 16px;border:2px solid var(--line);border-radius:12px;font-size:1rem;text-align:center;background:var(--card);color:var(--ink);outline:none}
+.gate-card input:focus{border-color:var(--azul)}
+.gate-card button{margin-top:12px;width:100%;padding:13px;border:none;border-radius:12px;background:var(--azul);color:#fff;font-family:'Plus Jakarta Sans';font-weight:700;font-size:1rem;cursor:pointer}
+.gate-card button:hover{background:var(--azul-2)}
+.gate-err{color:var(--vermelho);font-size:.85rem;margin-top:10px;min-height:18px;font-weight:600}
+
+/* ===== HEADER ===== */
+header{background:linear-gradient(135deg,var(--azul-dark),var(--azul) 55%,var(--azul-2));color:#fff;padding:22px 0 80px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;right:-80px;top:-80px;width:320px;height:320px;border:40px solid rgba(255,255,255,.06);border-radius:50%}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{height:34px}
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.themebtn,.navbtn{display:inline-flex;align-items:center;gap:6px;font-family:'Plus Jakarta Sans';font-size:.82rem;font-weight:600;color:#fff;background:rgba(255,255,255,.15);border:none;padding:8px 14px;border-radius:999px;cursor:pointer}
+.themebtn:hover,.navbtn:hover{background:rgba(255,255,255,.27)}
+.page-title{font-family:'Plus Jakarta Sans';font-weight:800;font-size:clamp(1.7rem,4vw,2.6rem);margin-top:18px;line-height:1.1}
+.page-sub{color:#d4d7ff;font-size:.95rem;margin-top:6px}
+
+/* ===== ACESSOBAR ===== */
+.acessobar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 16px;margin-top:-54px;position:relative;z-index:3;box-shadow:0 12px 30px rgba(20,24,60,.10)}
+.acessobar .ac{font-size:.84rem;font-weight:700;color:var(--azul);font-family:'Plus Jakarta Sans'}
+.acessobar button{font-family:'Plus Jakarta Sans';font-weight:700;font-size:.78rem;color:var(--azul);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px}
+.acessobar button:hover{background:var(--line)}
+[data-theme="dark"] .acessobar .ac{color:#aeb4ff}
+
+/* ===== SECTOR PICKER ===== */
+.picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:20px;margin-bottom:50px}
+.scard{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:22px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;display:flex;flex-direction:column;gap:10px;position:relative}
+.scard:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(20,24,60,.14);border-color:var(--azul)}
+.scard-alert{border-color:rgba(214,50,74,.25)}
+.scard-alert:hover{border-color:var(--vermelho)}
+.scard-nome{font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.08rem;color:var(--ink)}
+.scard-meta{font-size:.82rem;color:var(--muted)}
+.cov-bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-bottom:3px}
+.cov-bar>div{height:100%;border-radius:999px;background:var(--azul);transition:width .4s}
+.scard-cov span{font-size:.76rem;color:var(--muted)}
+.badge-ok{color:var(--verde-2);font-size:.8rem;font-weight:700;font-family:'Plus Jakarta Sans'}
+.badge-alert{color:var(--vermelho);font-size:.8rem;font-weight:700;font-family:'Plus Jakarta Sans'}
+
+/* ===== TABS ===== */
+.tabs-bar{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;margin-top:-2px}
+.tabs-bar .wrap{display:flex;gap:4px;padding:0 2px}
+.tab{background:none;border:0;padding:14px 18px;font-size:.88rem;color:var(--muted);border-bottom:3px solid transparent;font-weight:600;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif}
+.tab.on{color:var(--azul);border-bottom-color:var(--azul)}
+.painel{padding:24px 0;max-width:1160px;margin:0 auto}
+.painel.hidden{display:none!important}
+
+/* ===== CARDS KPI ===== */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:24px}
+.cards.mini{grid-template-columns:repeat(3,1fr);margin:14px 0}
+.card{background:var(--card);border-radius:16px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:4px;border-left:4px solid var(--azul)}
+.card.alerta{border-left-color:var(--ambar)}
+.card.critico{border-left-color:var(--vermelho)}
+.card-n{font-family:'Plus Jakarta Sans';font-size:2rem;font-weight:800;line-height:1.1}
+.card-l{color:var(--muted);font-size:.78rem}
+.card-l em{font-style:normal;color:var(--vermelho);font-weight:600}
+.bar{height:6px;background:var(--line);border-radius:4px;margin-top:8px;overflow:hidden}
+.bar>div{height:100%;background:var(--azul);width:0}
+
+h2{font-family:'Plus Jakarta Sans';font-weight:800;font-size:1.1rem;margin:28px 0 12px;display:flex;align-items:center;gap:8px}
+h2 .muted{font-weight:400;font-size:.82rem;color:var(--muted)}
+
+/* ===== FILTROS ===== */
+.filtros{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
+.filtros input,.filtros select{padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:.85rem;font-family:'DM Sans',system-ui,sans-serif}
+.filtros input:focus,.filtros select:focus{outline:none;border-color:var(--azul)}
+.filtros input[type=search]{min-width:230px;flex:1}
+.jan{color:var(--muted);font-size:.8rem;display:flex;align-items:center;gap:6px}
+.jan select{padding:5px 8px}
+
+/* ===== TABELAS ===== */
+.tbl-wrap{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:.83rem}
+th{text-align:left;padding:11px 13px;background:var(--bg);color:var(--muted);font-weight:600;position:sticky;top:0;white-space:nowrap;font-family:'Plus Jakarta Sans'}
+td{padding:10px 13px;border-top:1px solid var(--line)}
+tr:hover td{background:rgba(43,47,168,.04)}
+.cod{font-family:'Consolas',monospace;font-size:.78rem;color:var(--muted)}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:700;color:#fff}
+.cv-A{background:var(--vermelho)}.cv-B{background:var(--ambar)}.cv-C{background:var(--azul)}.cv-D{background:#8a8fa6}
+.st{font-size:.78rem;font-weight:600}
+.st-vende{color:var(--verde-2)}.st-parou{color:var(--ambar)}.st-nunca{color:var(--vermelho)}
+.tag-op{background:var(--vermelho);color:#fff;padding:1px 7px;border-radius:5px;font-size:.68rem;font-weight:700;margin-left:6px}
+.simn{font-weight:600}.sim{color:var(--verde-2)}.nao{color:var(--muted)}
+.vazio{text-align:center;padding:50px;color:var(--muted)}
+
+/* ===== FOOTER ===== */
+footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;text-align:center;border-top:1px solid var(--line)}
+.updated{display:inline-flex;align-items:center;gap:8px;background:var(--line);color:var(--ink);font-weight:600;padding:6px 14px;border-radius:999px;font-family:'Plus Jakarta Sans';font-size:.82rem;margin-top:8px}
+
+@media(max-width:600px){
+  .cards.mini{grid-template-columns:1fr}
+  .filtros input[type=search]{min-width:100%}
+  .picker-grid{grid-template-columns:1fr}
+}
+</style>
 <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login" class="login">
-  <div class="login-card">
-    <img src="logo-ferretti.png" alt="Ferretti" class="login-logo">
-    <h1>NÃO COMPRA</h1>
-    <p class="sub">Relatório de produtos que o seu setor ainda não vende.</p>
-    <input type="password" id="pw" placeholder="Sua senha de acesso" autocomplete="off">
-    <button id="btnEntrar">Entrar</button>
-    <p id="loginErr" class="err"></p>
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <img src="logo-ferretti.png" alt="Ferretti">
+    <h2>NÃO COMPRA</h2>
+    <p>Relatório de produtos que o seu setor ainda não vende.</p>
+    <input id="gatePass" type="password" placeholder="Senha de acesso" autocomplete="off">
+    <button id="gateBtn" type="button">Entrar</button>
+    <div class="gate-err" id="gateErr"></div>
   </div>
-  <footer class="login-foot">M. Ferretti Distribuidora</footer>
 </div>
 
-<!-- APP -->
-<div id="app" class="app hidden">
-  <header class="topo">
-    <img src="logo-ferretti.png" alt="Ferretti" class="topo-logo">
-    <div class="topo-meta">
-      <strong id="topoSetor">—</strong>
-      <span id="topoSub" class="muted"></span>
+<!-- HEADER (oculto até login) -->
+<header id="headerEl" style="display:none">
+  <div class="wrap">
+    <div class="topbar">
+      <img class="brand" src="logo-ferretti.png" alt="Ferretti distribuidora">
+      <div class="topbar-actions">
+        <button id="themeBtn" class="themebtn" type="button"></button>
+        <button id="voltarBtn" class="navbtn" style="display:none" type="button">← Todos os setores</button>
+        <button id="sairBtn" class="navbtn" type="button">Sair</button>
+      </div>
     </div>
-    <div class="topo-right">
-      <select id="selSetor" class="hidden"></select>
-      <button id="btnTema" class="ghost" title="Tema">◐</button>
-      <button id="btnSair" class="ghost">Sair</button>
+    <div id="headerMeta" style="display:none">
+      <h1 class="page-title" id="hSetor">—</h1>
+      <p class="page-sub" id="hSub"></p>
     </div>
-  </header>
+    <div id="headerPickerMeta" style="display:none">
+      <h1 class="page-title">Escolha o setor</h1>
+      <p class="page-sub" id="hAccLabel"></p>
+    </div>
+  </div>
+</header>
 
-  <nav class="tabs">
-    <button class="tab on" data-tab="resumo">Resumo</button>
-    <button class="tab" data-tab="setor">Por setor</button>
-    <button class="tab" data-tab="cliente">Por cliente</button>
+<!-- ACESSOBAR -->
+<div class="wrap">
+  <div class="acessobar" id="acessoBar" style="display:none">
+    <span class="ac" id="acessoLabel"></span>
+    <div style="display:flex;gap:6px">
+      <button id="trocarBtn" type="button" style="display:none">trocar setor</button>
+      <button id="trocarAccBtn" type="button">trocar acesso</button>
+    </div>
+  </div>
+</div>
+
+<!-- SECTOR PICKER -->
+<div id="pickerSection" style="display:none">
+  <div class="wrap">
+    <div class="picker-grid" id="pickerGrid"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashSection" style="display:none">
+  <nav class="tabs-bar">
+    <div class="wrap">
+      <button class="tab on" data-tab="resumo">Resumo</button>
+      <button class="tab" data-tab="setor">Por setor</button>
+      <button class="tab" data-tab="cliente">Por cliente</button>
+    </div>
   </nav>
 
-  <!-- RESUMO -->
-  <section id="tab-resumo" class="painel">
-    <div class="cards">
-      <div class="card"><span class="card-n" id="cCobertura">—</span><span class="card-l">Produtos da base que o setor já vendeu</span><div class="bar"><div id="barCob"></div></div></div>
-      <div class="card alerta"><span class="card-n" id="cNaoVende">—</span><span class="card-l">Produtos que o setor NUNCA vendeu</span></div>
-      <div class="card critico"><span class="card-n" id="cCurvaA">—</span><span class="card-l">Curva A não vendidos <em>(obrigatórios)</em></span></div>
-      <div class="card"><span class="card-n" id="cClientes">—</span><span class="card-l">Clientes no setor</span></div>
-    </div>
+  <div class="wrap">
+    <!-- RESUMO -->
+    <section id="tab-resumo" class="painel">
+      <div class="cards">
+        <div class="card"><span class="card-n" id="cCobertura">—</span><span class="card-l">Produtos da base que o setor já vendeu</span><div class="bar"><div id="barCob"></div></div></div>
+        <div class="card alerta"><span class="card-n" id="cNaoVende">—</span><span class="card-l">Produtos que o setor NUNCA vendeu</span></div>
+        <div class="card critico"><span class="card-n" id="cCurvaA">—</span><span class="card-l">Curva A não vendidos <em>(obrigatórios)</em></span></div>
+        <div class="card"><span class="card-n" id="cClientes">—</span><span class="card-l">Clientes no setor</span></div>
+      </div>
+      <h2>🔴 Curva A que o setor não vende <span class="muted">— prioridade máxima</span></h2>
+      <p class="muted" id="resumoCurvaAvazio" style="display:none">Parabéns! O setor vende todos os produtos curva A. 🎉</p>
+      <div class="tbl-wrap"><table id="tblResumoA"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th></tr></thead><tbody></tbody></table></div>
+      <h2>Maiores oportunidades <span class="muted">— curva A/B vendidas a poucos clientes</span></h2>
+      <div class="tbl-wrap"><table id="tblOportSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Clientes que compram</th></tr></thead><tbody></tbody></table></div>
+    </section>
 
-    <h2>🔴 Curva A que o setor não vende <span class="muted">— prioridade máxima</span></h2>
-    <p class="muted" id="resumoCurvaAvazio" style="display:none">Parabéns! O setor vende todos os produtos curva A. 🎉</p>
-    <div class="tbl-wrap"><table id="tblResumoA"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th></tr></thead><tbody></tbody></table></div>
+    <!-- POR SETOR -->
+    <section id="tab-setor" class="painel hidden">
+      <div class="filtros">
+        <input type="search" id="fSetorBusca" placeholder="Buscar produto ou código…">
+        <select id="fSetorMarca"></select>
+        <select id="fSetorCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
+        <select id="fSetorStatus">
+          <option value="naovende">Só os que NÃO vende</option>
+          <option value="nunca">Nunca vendeu</option>
+          <option value="parou">Parou de vender</option>
+          <option value="vende">Vende atualmente</option>
+          <option value="">Todos</option>
+        </select>
+        <label class="jan">Vende = comprou nos últimos
+          <select id="fJanela"><option value="90">90</option><option value="120" selected>120</option><option value="180">180</option><option value="365">365</option><option value="99999">qualquer</option></select> dias
+        </label>
+      </div>
+      <p class="muted" id="setorCount"></p>
+      <div class="tbl-wrap"><table id="tblSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Última venda</th><th>Clientes</th></tr></thead><tbody></tbody></table></div>
+    </section>
 
-    <h2>Maiores oportunidades <span class="muted">— curva A/B vendidas a poucos clientes do setor</span></h2>
-    <div class="tbl-wrap"><table id="tblOportSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Clientes que compram</th></tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <!-- POR SETOR -->
-  <section id="tab-setor" class="painel hidden">
-    <div class="filtros">
-      <input type="search" id="fSetorBusca" placeholder="Buscar produto ou código…">
-      <select id="fSetorMarca"></select>
-      <select id="fSetorCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
-      <select id="fSetorStatus">
-        <option value="naovende">Só os que NÃO vende</option>
-        <option value="nunca">Nunca vendeu</option>
-        <option value="parou">Parou de vender</option>
-        <option value="vende">Vende atualmente</option>
-        <option value="">Todos</option>
-      </select>
-      <label class="jan">Vende = comprou nos últimos
-        <select id="fJanela"><option value="90">90</option><option value="120" selected>120</option><option value="180">180</option><option value="365">365</option><option value="99999">qualquer</option></select> dias
-      </label>
-    </div>
-    <p class="muted" id="setorCount"></p>
-    <div class="tbl-wrap"><table id="tblSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Última venda</th><th>Clientes</th></tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <!-- POR CLIENTE -->
-  <section id="tab-cliente" class="painel hidden">
-    <div class="filtros">
-      <select id="selCliente"><option value="">— escolha um cliente —</option></select>
-      <input type="search" id="fCliBusca" placeholder="Buscar produto…">
-      <select id="fCliCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
-      <select id="fCliStatus">
-        <option value="naocompra">Só o que NÃO compra</option>
-        <option value="oportunidade">Oportunidades (setor vende, ele não)</option>
-        <option value="compra">Só o que compra</option>
-        <option value="">Todos</option>
-      </select>
-    </div>
-    <div id="cliResumo" class="cards mini hidden">
-      <div class="card"><span class="card-n" id="ccCompra">—</span><span class="card-l">Produtos que compra</span></div>
-      <div class="card alerta"><span class="card-n" id="ccNao">—</span><span class="card-l">Não compra</span></div>
-      <div class="card critico"><span class="card-n" id="ccA">—</span><span class="card-l">Curva A que não compra</span></div>
-    </div>
-    <p class="muted" id="cliCount"></p>
-    <div class="tbl-wrap"><table id="tblCli"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Setor vende?</th><th>Última compra</th></tr></thead><tbody></tbody></table></div>
-  </section>
-
-  <footer class="rodape">
-    <span>M. Ferretti Distribuidora</span>
-    <span class="muted" id="rodapeAtual"></span>
-  </footer>
+    <!-- POR CLIENTE -->
+    <section id="tab-cliente" class="painel hidden">
+      <div class="filtros">
+        <select id="selCliente"><option value="">— escolha um cliente —</option></select>
+        <input type="search" id="fCliBusca" placeholder="Buscar produto…">
+        <select id="fCliCurva"><option value="">Todas as curvas</option><option value="A">Curva A</option><option value="B">Curva B</option><option value="C">Curva C</option><option value="D">Curva D</option></select>
+        <select id="fCliStatus">
+          <option value="naocompra">Só o que NÃO compra</option>
+          <option value="oportunidade">Oportunidades (setor vende, ele não)</option>
+          <option value="compra">Só o que compra</option>
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div id="cliResumo" class="cards mini hidden">
+        <div class="card"><span class="card-n" id="ccCompra">—</span><span class="card-l">Produtos que compra</span></div>
+        <div class="card alerta"><span class="card-n" id="ccNao">—</span><span class="card-l">Não compra</span></div>
+        <div class="card critico"><span class="card-n" id="ccA">—</span><span class="card-l">Curva A que não compra</span></div>
+      </div>
+      <p class="muted" id="cliCount"></p>
+      <div class="tbl-wrap"><table id="tblCli"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Setor vende?</th><th>Última compra</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </div>
 </div>
+
+<footer>
+  <div class="wrap">
+    <p>M. Ferretti Distribuidora · NÃO COMPRA · Uso interno</p>
+    <p style="margin-top:8px"><span class="updated" id="rodapeAtual"></span></p>
+  </div>
+</footer>
 
 <script src="dados/manifest.js"></script>
 <script src="dados/base.js"></script>
