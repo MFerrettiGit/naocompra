@@ -118,6 +118,12 @@ tr:hover td{background:rgba(43,47,168,.04)}
 /* ===== FOOTER ===== */
 footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;text-align:center;border-top:1px solid var(--line)}
 .updated{display:inline-flex;align-items:center;gap:8px;background:var(--line);color:var(--ink);font-weight:600;padding:6px 14px;border-radius:999px;font-family:'Plus Jakarta Sans';font-size:.82rem;margin-top:8px}
+.periodo-info{font-size:.82rem;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.periodo-info::before{content:"📅";font-size:.85rem}
+.card-click{cursor:pointer;transition:transform .12s,box-shadow .12s}
+.card-click:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,24,60,.15)}
+.card-hint{font-size:.72rem;color:var(--muted);margin-top:4px;font-family:'Plus Jakarta Sans';font-weight:600;opacity:.7}
+.card-click:hover .card-hint{opacity:1;color:var(--azul)}
 
 @media(max-width:600px){
   .cards.mini{grid-template-columns:1fr}
@@ -194,11 +200,12 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
   <div class="wrap">
     <!-- RESUMO -->
     <section id="tab-resumo" class="painel">
+      <p class="periodo-info" id="periodoInfo"></p>
       <div class="cards">
-        <div class="card"><span class="card-n" id="cCobertura">—</span><span class="card-l">Produtos da base que o setor já vendeu</span><div class="bar"><div id="barCob"></div></div></div>
-        <div class="card alerta"><span class="card-n" id="cNaoVende">—</span><span class="card-l">Produtos que o setor NUNCA vendeu</span></div>
-        <div class="card critico"><span class="card-n" id="cCurvaA">—</span><span class="card-l">Curva A não vendidos <em>(obrigatórios)</em></span></div>
-        <div class="card"><span class="card-n" id="cClientes">—</span><span class="card-l">Clientes no setor</span></div>
+        <div class="card card-click" id="cardCobertura" title="Ver produtos que o setor vende"><span class="card-n" id="cCobertura">—</span><span class="card-l">Produtos da base que o setor já vendeu</span><div class="bar"><div id="barCob"></div></div><span class="card-hint">Ver lista →</span></div>
+        <div class="card alerta card-click" id="cardNaoVende" title="Ver produtos que o setor nunca vendeu"><span class="card-n" id="cNaoVende">—</span><span class="card-l">Produtos que o setor NUNCA vendeu</span><span class="card-hint">Ver lista →</span></div>
+        <div class="card critico card-click" id="cardCurvaA" title="Ver curva A não vendida"><span class="card-n" id="cCurvaA">—</span><span class="card-l">Curva A não vendidos <em>(obrigatórios)</em></span><span class="card-hint">Ver lista →</span></div>
+        <div class="card card-click" id="cardClientes" title="Ver clientes do setor"><span class="card-n" id="cClientes">—</span><span class="card-l">Clientes no setor</span><span class="card-hint">Ver lista →</span></div>
       </div>
       <h2>🔴 Curva A que o setor não vende <span class="muted">— prioridade máxima</span></h2>
       <p class="muted" id="resumoCurvaAvazio" style="display:none">Parabéns! O setor vende todos os produtos curva A. 🎉</p>

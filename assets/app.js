@@ -198,6 +198,19 @@ function popularMarcas(){
   $('#fSetorMarca').innerHTML = '<option value="">Todas as marcas</option>' + ms.map(m => `<option>${m}</option>`).join('');
 }
 
+/* ===== TROCAR ABA ===== */
+function switchTab(tabId, filtro){
+  $$('.tab').forEach(t => t.classList.remove('on'));
+  $$('.painel').forEach(p => p.classList.add('hidden'));
+  $(`[data-tab="${tabId}"]`).classList.add('on');
+  $(`#tab-${tabId}`).classList.remove('hidden');
+  if(tabId === 'setor' && filtro !== undefined){
+    $('#fSetorStatus').value = filtro;
+    renderSetor();
+  }
+  window.scrollTo({top: document.getElementById('dashSection').offsetTop - 60, behavior:'smooth'});
+}
+
 /* ===== RENDER ===== */
 function renderTudo(){ renderResumo(); renderSetor(); renderCliente(); }
 
@@ -211,6 +224,20 @@ function renderResumo(){
   $('#cClientes').textContent = info ? info.clientes : '—';
   const aNao = COD_ORDEM.filter(c => PRODS[c].c==='A' && !SETOR.setorProds[c]);
   $('#cCurvaA').textContent = aNao.length;
+  // Período de análise
+  const ref = BASE.ref; // "YYYY-MM-DD"
+  const [ry,rm,rd] = ref.split('-').map(Number);
+  const ini = new Date(ry, rm-1, rd); ini.setMonth(ini.getMonth()-18);
+  const iniStr = String(ini.getDate()).padStart(2,'0')+'/'+String(ini.getMonth()+1).padStart(2,'0')+'/'+ini.getFullYear();
+  $('#periodoInfo').textContent = `Análise: ${iniStr} a ${fmtData(ref)} (18 meses)`;
+  // Cards clicáveis
+  $('#cardCobertura').onclick = () => switchTab('setor', 'vende');
+  $('#cardNaoVende').onclick  = () => switchTab('setor', 'nunca');
+  $('#cardCurvaA').onclick    = () => {
+    if(aNao.length === 0){ return; }
+    document.getElementById('tblResumoA').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+  $('#cardClientes').onclick  = () => switchTab('cliente');
   const tb = $('#tblResumoA tbody');
   if(aNao.length===0){
     $('#resumoCurvaAvazio').style.display = 'block'; tb.innerHTML = '';
