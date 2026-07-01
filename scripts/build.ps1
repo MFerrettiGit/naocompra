@@ -112,7 +112,8 @@ function Read-XlsxData([string]$Path){
   return $rows
 }
 
-$setoresExcluir = @('(sem setor)','EXCLUIDOS','NORDESTE','M. FERRETTI','CENTRO OESTE')
+$setoresExcluir = @('(sem setor)','EXCLUIDOS','NORDESTE','M. FERRETTI','CENTRO OESTE',
+    'ARACATUBA','AVARE','BAURU','FERNANDOPOLIS','JABOTICABAL','MARILIA','PRES.PRUDENTE','RIO PRETO','TAUBATE')
 
 Write-Host "Lendo estoque..."
 $raw = Get-Content $EstoqueJs -Raw
@@ -157,21 +158,22 @@ if($Xlsx -ne ""){
   Write-Host "Lendo vendas de xlsx: $Xlsx"
   $rawRows = Read-XlsxData $Xlsx
   # Normaliza nomes de colunas (DATA/data, PRODUTO/produto, etc.)
+  function Coalesce { foreach($v in $args){ if($null -ne $v -and "$v" -ne ''){ return $v } }; return "" }
   $vendas = $rawRows | ForEach-Object {
     $r = $_
     [PSCustomObject]@{
-      data        = ($r.DATA ?? $r.data)
-      produto     = ($r.PRODUTO ?? $r.produto)
-      descricao   = ($r.DESCRICAO ?? $r.descricao)
-      marca       = ($r.MARCA ?? $r.marca)
-      linha       = ($r.LINHA ?? $r.linha)
-      cliente     = ($r.CLIENTE ?? $r.cliente)
-      nomecliente = ($r.NOME_CLIENTE ?? $r.nomecliente)
-      rede        = ($r.REDE ?? $r.rede ?? "")
-      vendedor    = ($r.VENDEDOR ?? $r.vendedor)
-      setor       = ($r.SETOR ?? $r.setor)
-      qtd         = ($r.QTD ?? $r.qtd)
-      valor       = ($r.VALOR ?? $r.valor)
+      data        = Coalesce $r.DATA $r.data
+      produto     = Coalesce $r.PRODUTO $r.produto
+      descricao   = Coalesce $r.DESCRICAO $r.descricao
+      marca       = Coalesce $r.MARCA $r.marca
+      linha       = Coalesce $r.LINHA $r.linha
+      cliente     = Coalesce $r.CLIENTE $r.cliente
+      nomecliente = Coalesce $r.NOME_CLIENTE $r.nomecliente
+      rede        = Coalesce $r.REDE $r.rede ""
+      vendedor    = Coalesce $r.VENDEDOR $r.vendedor
+      setor       = Coalesce $r.SETOR $r.setor
+      qtd         = Coalesce $r.QTD $r.qtd
+      valor       = Coalesce $r.VALOR $r.valor
     }
   }
 } else {
@@ -190,6 +192,7 @@ foreach($row in $vendas){
   $setor = $row.setor
   if([string]::IsNullOrWhiteSpace($setor)){ continue }
   if($setoresExcluir -contains $setor){ continue }
+  if($setor -eq 'CAMPINAS SUL'){ $setor = 'CAMPINAS NORTE' }  # Campinas Sul juntou na Norte
   $cli = $row.cliente
   $val = [double]::Parse($row.valor, $ci)
   $qt  = [double]::Parse($row.qtd, $ci)
@@ -198,7 +201,7 @@ foreach($row in $vendas){
   $S = $setores[$setor]
   if(-not $S.prods.ContainsKey($cod)){ $S.prods[$cod] = @{ q=0.0; v=0.0; ult=''; cli=(New-Object 'System.Collections.Generic.HashSet[string]') } }
   $sp = $S.prods[$cod]; $sp.q += $qt; $sp.v += $val; if($dt -gt $sp.ult){ $sp.ult = $dt }; [void]$sp.cli.Add($cli)
-  if(-not $S.clientes.ContainsKey($cli)){ $S.clientes[$cli] = @{ nome=$row.nomecliente; rede=($row.rede ?? ""); prods=@{} } }
+  if(-not $S.clientes.ContainsKey($cli)){ $S.clientes[$cli] = @{ nome=$row.nomecliente; rede=([string]$row.rede).Trim(); prods=@{} } }
   $C = $S.clientes[$cli]
   if(-not $C.prods.ContainsKey($cod)){ $C.prods[$cod] = @{ q=0.0; v=0.0; ult='' } }
   $cp = $C.prods[$cod]; $cp.q += $qt; $cp.v += $val; if($dt -gt $cp.ult){ $cp.ult = $dt }
