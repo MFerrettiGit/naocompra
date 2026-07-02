@@ -5,20 +5,49 @@ const BASE = window.BASE, MAN = window.MANIFEST;
 const PRODS = BASE.produtos;
 const COD_ORDEM = Object.keys(PRODS);
 const REF = parseData(BASE.ref);
-let ADMIN = false;   // acesso a múltiplos setores
-let SETOR = null;    // objeto do setor atual
-let ACC = null;      // objeto do acesso atual
+let ADMIN = false;
+let SETOR = null;
+let ACC = null;
 
 /* ===== UTILS ===== */
 function parseData(s){ if(!s) return null; const p=s.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
 function diasDesde(s){ const d=parseData(s); return d? Math.round((REF-d)/86400000) : Infinity; }
 function fmtData(s){ if(!s) return '—'; const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function fmtVal(v){ return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function pill(c){ return `<span class="pill cv-${c}">${c}</span>`; }
+function pillCli(c){ return `<span class="pill cv-${c}" title="Curva de compras ${c}">${c}</span>`; }
 async function sha256(t){
   const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t.toLowerCase()));
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 async function fkeyOf(pw){ return (await sha256('nc-arq:'+pw)).slice(0,16); }
+
+/* ===== PERSISTÊNCIA (localStorage 30 dias) ===== */
+const LS_FK  = 'nc_fk';
+const LS_ACC = 'nc_acc';
+const LS_TS  = 'nc_ts';
+const LS_TTL = 30 * 24 * 60 * 60 * 1000; // 30 dias
+
+function lsSave(fk, acc){
+  try {
+    localStorage.setItem(LS_FK,  fk);
+    localStorage.setItem(LS_ACC, JSON.stringify(acc));
+    localStorage.setItem(LS_TS,  Date.now().toString());
+  } catch(e){}
+}
+function lsClear(){
+  try { localStorage.removeItem(LS_FK); localStorage.removeItem(LS_ACC); localStorage.removeItem(LS_TS); } catch(e){}
+}
+function lsLoad(){
+  try {
+    const fk = localStorage.getItem(LS_FK);
+    const raw = localStorage.getItem(LS_ACC);
+    const ts  = parseInt(localStorage.getItem(LS_TS) || '0', 10);
+    if(!fk || !raw) return null;
+    if(Date.now() - ts > LS_TTL){ lsClear(); return null; }
+    return { fk, acc: JSON.parse(raw) };
+  } catch(e){ return null; }
+}
 
 /* ===== GATE ===== */
 $('#gateBtn').onclick = tentarSenha;
@@ -31,7 +60,7 @@ async function tentarSenha(){
   const acc = MAN.acessos.find(a => a.h === h);
   if(!acc){ $('#gateErr').textContent = 'Senha inválida.'; return; }
   const fk = await fkeyOf(pw);
-  try { sessionStorage.setItem('nc_fk', fk); sessionStorage.setItem('nc_acc', JSON.stringify(acc)); } catch(e){}
+  lsSave(fk, acc);
   $('#gate').style.display = 'none';
   iniciar(fk, acc);
 }
@@ -42,7 +71,7 @@ function carregarArquivo(fk, cb){
   sc.src = 'dados/d/' + fk + '.js';
   sc.onload = cb;
   sc.onerror = () => {
-    try { sessionStorage.clear(); } catch(e){}
+    lsClear();
     $('#gate').style.display = 'flex';
     $('#gateErr').textContent = 'Não foi possível carregar os dados.';
   };
@@ -56,40 +85,31 @@ function iniciar(fk, acc){
     const loaded = Object.keys(window.SETORES || {});
     const ordered = MAN.setores.filter(s => loaded.includes(s.slug)).map(s => s.slug);
     if(ordered.length === 0){
-      try { sessionStorage.clear(); } catch(e){}
+      lsClear();
       $('#gate').style.display = 'flex';
       document.getElementById('headerEl').style.display = 'none';
       $('#gateErr').textContent = 'Sem setores liberados para este acesso.';
       return;
     }
     ADMIN = ordered.length > 1;
-    // acessobar
     document.getElementById('acessoBar').style.display = '';
     document.getElementById('rodapeAtual').textContent =
       'Base: ' + MAN.baseTotal + ' produtos · atualizado ' + MAN.atualizadoEm + ' · ref. ' + fmtData(BASE.ref);
-    if(ADMIN){
-      mostrarPicker(ordered);
-    } else {
-      mostrarDashboard(ordered[0]);
-    }
+    if(ADMIN) mostrarPicker(ordered);
+    else mostrarDashboard(ordered[0]);
   });
 }
 
 /* ===== SECTOR PICKER ===== */
 function mostrarPicker(slugs){
-  // header
   document.getElementById('headerMeta').style.display = 'none';
   document.getElementById('headerPickerMeta').style.display = '';
   document.getElementById('hAccLabel').textContent = 'Acesso: ' + ACC.label + ' · ' + slugs.length + ' setores';
-  // voltar btn
   document.getElementById('voltarBtn').style.display = 'none';
-  // acessobar
   document.getElementById('acessoLabel').textContent = 'Acesso: ' + ACC.label;
   document.getElementById('trocarBtn').style.display = 'none';
-  // seções
   document.getElementById('pickerSection').style.display = '';
   document.getElementById('dashSection').style.display = 'none';
-  // render cards
   const total = MAN.baseTotal;
   const setores = MAN.setores.filter(s => slugs.includes(s.slug));
   document.getElementById('pickerGrid').innerHTML = setores.map(s => {
@@ -118,26 +138,20 @@ function mostrarPicker(slugs){
 function mostrarDashboard(slug){
   SETOR = window.SETORES[slug];
   const info = MAN.setores.find(s => s.slug === slug);
-  // header
   document.getElementById('headerMeta').style.display = '';
   document.getElementById('headerPickerMeta').style.display = 'none';
   document.getElementById('hSetor').textContent = SETOR.setor;
   document.getElementById('hSub').textContent = info.clientes + ' clientes · Acesso: ' + ACC.label;
-  // botão voltar (só se multi-setor)
   const voltarBtn = document.getElementById('voltarBtn');
   voltarBtn.style.display = ADMIN ? '' : 'none';
-  // acessobar
   document.getElementById('acessoLabel').textContent = SETOR.setor + ' · ' + ACC.label;
   document.getElementById('trocarBtn').style.display = ADMIN ? '' : 'none';
-  // seções
   document.getElementById('pickerSection').style.display = 'none';
   document.getElementById('dashSection').style.display = '';
-  // reset tab
   $$('.tab').forEach(t => t.classList.remove('on'));
   $$('.painel').forEach(p => p.classList.add('hidden'));
   $('[data-tab="resumo"]').classList.add('on');
   $('#tab-resumo').classList.remove('hidden');
-  // renderiza
   popularClientes();
   popularMarcas();
   renderTudo();
@@ -145,23 +159,15 @@ function mostrarDashboard(slug){
 
 /* ===== NAVEGAÇÃO ===== */
 document.getElementById('voltarBtn').onclick = () => {
-  const loaded = Object.keys(window.SETORES || {});
-  const slugs = MAN.setores.filter(s => loaded.includes(s.slug)).map(s => s.slug);
+  const slugs = MAN.setores.filter(s => Object.keys(window.SETORES||{}).includes(s.slug)).map(s => s.slug);
   mostrarPicker(slugs);
 };
 document.getElementById('trocarBtn').onclick = () => {
-  const loaded = Object.keys(window.SETORES || {});
-  const slugs = MAN.setores.filter(s => loaded.includes(s.slug)).map(s => s.slug);
+  const slugs = MAN.setores.filter(s => Object.keys(window.SETORES||{}).includes(s.slug)).map(s => s.slug);
   mostrarPicker(slugs);
 };
-document.getElementById('sairBtn').onclick = () => {
-  try { sessionStorage.clear(); } catch(e){}
-  location.reload();
-};
-document.getElementById('trocarAccBtn').onclick = () => {
-  try { sessionStorage.clear(); } catch(e){}
-  location.reload();
-};
+document.getElementById('sairBtn').onclick = () => { lsClear(); location.reload(); };
+document.getElementById('trocarAccBtn').onclick = () => { lsClear(); location.reload(); };
 
 /* ===== JANELA / STATUS ===== */
 function janela(){ return +$('#fJanela').value; }
@@ -204,10 +210,7 @@ function switchTab(tabId, filtro){
   $$('.painel').forEach(p => p.classList.add('hidden'));
   $(`[data-tab="${tabId}"]`).classList.add('on');
   $(`#tab-${tabId}`).classList.remove('hidden');
-  if(tabId === 'setor' && filtro !== undefined){
-    $('#fSetorStatus').value = filtro;
-    renderSetor();
-  }
+  if(tabId === 'setor' && filtro !== undefined){ $('#fSetorStatus').value = filtro; renderSetor(); }
   window.scrollTo({top: document.getElementById('dashSection').offsetTop - 60, behavior:'smooth'});
 }
 
@@ -224,19 +227,14 @@ function renderResumo(){
   $('#cClientes').textContent = info ? info.clientes : '—';
   const aNao = COD_ORDEM.filter(c => PRODS[c].c==='A' && !SETOR.setorProds[c]);
   $('#cCurvaA').textContent = aNao.length;
-  // Período de análise
-  const ref = BASE.ref; // "YYYY-MM-DD"
+  const ref = BASE.ref;
   const [ry,rm,rd] = ref.split('-').map(Number);
   const ini = new Date(ry, rm-1, rd); ini.setMonth(ini.getMonth()-18);
   const iniStr = String(ini.getDate()).padStart(2,'0')+'/'+String(ini.getMonth()+1).padStart(2,'0')+'/'+ini.getFullYear();
   $('#periodoInfo').textContent = `Análise: ${iniStr} a ${fmtData(ref)} (18 meses)`;
-  // Cards clicáveis
   $('#cardCobertura').onclick = () => switchTab('setor', 'vende');
   $('#cardNaoVende').onclick  = () => switchTab('setor', 'nunca');
-  $('#cardCurvaA').onclick    = () => {
-    if(aNao.length === 0){ return; }
-    document.getElementById('tblResumoA').scrollIntoView({behavior:'smooth', block:'start'});
-  };
+  $('#cardCurvaA').onclick    = () => { if(aNao.length) document.getElementById('tblResumoA').scrollIntoView({behavior:'smooth', block:'start'}); };
   $('#cardClientes').onclick  = () => switchTab('cliente');
   const tb = $('#tblResumoA tbody');
   if(aNao.length===0){
@@ -277,14 +275,35 @@ function renderSetor(){
     : '<tr><td colspan="7" class="vazio">Nenhum produto neste filtro.</td></tr>';
 }
 
+/* ===== CURVA ABC DE CLIENTES (Pareto 80/95) ===== */
+function calcularCurvaClientes(clientes){
+  clientes.forEach(c => {
+    c._totalV = Object.values(c.p).reduce((s, arr) => s + (arr[0] || 0), 0);
+    c._nProds  = Object.keys(c.p).length;
+  });
+  const sorted = [...clientes].sort((a,b) => b._totalV - a._totalV);
+  const totalGeral = sorted.reduce((s,c) => s + c._totalV, 0);
+  let acum = 0;
+  sorted.forEach(c => {
+    acum += c._totalV;
+    const pct = totalGeral > 0 ? acum / totalGeral : 1;
+    c.curvaC = pct <= 0.80 ? 'A' : pct <= 0.95 ? 'B' : 'C';
+  });
+}
+
 /* ===== CLIENTE (multi-seleção) ===== */
-let CLIS = [];     // array de objetos cliente selecionados
-let _allClis = []; // todos os clientes do setor, ordenados
+let CLIS = [];
+let _allClis = [];
 
 function popularClientes(){
-  _allClis = [...SETOR.clientes].sort((a,b) => a.n.localeCompare(b.n));
+  _allClis = [...SETOR.clientes];
+  calcularCurvaClientes(_allClis);
+  // ordenação padrão: curva A → B → C, depois nome
+  _allClis.sort((a,b) => {
+    const o = {A:0,B:1,C:2};
+    return (o[a.curvaC]||2) - (o[b.curvaC]||2) || a.n.localeCompare(b.n);
+  });
   CLIS = [];
-  // popular select de rede
   const redes = [...new Set(_allClis.map(c => c.r || '').filter(Boolean))].sort();
   $('#fCliRede').innerHTML = '<option value="">Todas as redes</option>'
     + redes.map(r => `<option value="${r}">${r}</option>`).join('');
@@ -297,52 +316,67 @@ function popularClientes(){
 }
 
 function renderChips(){
-  const rede = $('#fCliRede').value;
-  const busca = $('#fCliSearch').value.toLowerCase().trim();
-  const visivel = _allClis.filter(c =>
-    (!rede || (c.r || '') === rede) &&
-    (!busca || c.n.toLowerCase().includes(busca) || c.c.toLowerCase().includes(busca))
+  const rede   = $('#fCliRede').value;
+  const busca  = $('#fCliSearch').value.toLowerCase().trim();
+  const ordem  = $('#fCliOrdem') ? $('#fCliOrdem').value : 'curva';
+  const fcurva = $('#fCliCurvaFiltro') ? $('#fCliCurvaFiltro').value : '';
+
+  let visivel = _allClis.filter(c =>
+    (!rede   || (c.r || '') === rede) &&
+    (!fcurva || c.curvaC === fcurva) &&
+    (!busca  || c.n.toLowerCase().includes(busca) || c.c.toLowerCase().includes(busca))
   );
+
+  if(ordem === 'nome'){
+    visivel = [...visivel].sort((a,b) => a.n.localeCompare(b.n));
+  }
+  // ordem padrão (curva) já está em _allClis
+
   const selSet = new Set(CLIS.map(c => c.c));
+  const curvaLbl = {A:'Curva A', B:'Curva B', C:'Curva C'};
+
   $('#cliChips').innerHTML = visivel.map(c => {
     const sel = selSet.has(c.c);
     const redeTag = c.r ? `<span class="chip-rede">${c.r}</span>` : '';
-    return `<div class="chip${sel?' sel':''}" data-cod="${c.c}">${c.n}${redeTag}</div>`;
+    const val = c._totalV > 0 ? ` · ${fmtVal(c._totalV)}` : '';
+    return `<div class="chip${sel?' sel':''}" data-cod="${c.c}" title="${c.n} · ${curvaLbl[c.curvaC]}${val}">
+      <span class="chip-curva cv-${c.curvaC}">${c.curvaC}</span>
+      ${c.n}${redeTag}
+    </div>`;
   }).join('');
+
   $$('#cliChips .chip').forEach(el => {
     el.onclick = () => {
       const cod = el.dataset.cod;
       const obj = _allClis.find(c => c.c === cod);
-      if(selSet.has(cod)){
-        CLIS = CLIS.filter(c => c.c !== cod);
-      } else {
-        CLIS.push(obj);
-      }
+      if(selSet.has(cod)) CLIS = CLIS.filter(c => c.c !== cod);
+      else CLIS.push(obj);
       renderChips();
       renderCliente();
     };
   });
-  const total = visivel.length, sel = visivel.filter(c => selSet.has(c.c)).length;
-  const txt = sel === 0
+
+  const nSel = visivel.filter(c => selSet.has(c.c)).length;
+  const txt = nSel === 0
     ? (visivel.length < _allClis.length ? `${visivel.length} cliente(s) filtrado(s) — nenhum selecionado` : 'Nenhum cliente selecionado')
-    : `${sel} de ${_allClis.length} cliente(s) selecionado(s)`;
+    : `${nSel} de ${_allClis.length} cliente(s) selecionado(s)`;
   $('#cliSelCount').textContent = txt;
 }
 
 document.getElementById('btnSelectAll').onclick = () => {
-  const rede = $('#fCliRede').value;
-  const busca = $('#fCliSearch').value.toLowerCase().trim();
+  const rede   = $('#fCliRede').value;
+  const busca  = $('#fCliSearch').value.toLowerCase().trim();
+  const fcurva = $('#fCliCurvaFiltro') ? $('#fCliCurvaFiltro').value : '';
   const visivel = _allClis.filter(c =>
-    (!rede || (c.r || '') === rede) &&
-    (!busca || c.n.toLowerCase().includes(busca) || c.c.toLowerCase().includes(busca))
+    (!rede   || (c.r || '') === rede) &&
+    (!fcurva || c.curvaC === fcurva) &&
+    (!busca  || c.n.toLowerCase().includes(busca) || c.c.toLowerCase().includes(busca))
   );
   const selSet = new Set(CLIS.map(c => c.c));
   visivel.forEach(c => { if(!selSet.has(c.c)) CLIS.push(c); });
   renderChips(); renderCliente();
 };
-document.getElementById('btnClearSel').onclick = () => {
-  CLIS = []; renderChips(); renderCliente();
-};
+document.getElementById('btnClearSel').onclick = () => { CLIS = []; renderChips(); renderCliente(); };
 
 function renderCliente(){
   const N = CLIS.length;
@@ -360,7 +394,6 @@ function renderCliente(){
   const fc = $('#fCliCurva').value, fs = $('#fCliStatus').value;
   const multi = N > 1;
 
-  // atualizar cabeçalho da tabela
   const thead = $('#tblCli thead tr');
   if(multi){
     thead.innerHTML = '<th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Compradores</th><th>Setor vende?</th><th>Última compra</th>';
@@ -377,7 +410,6 @@ function renderCliente(){
   for(const c of COD_ORDEM){
     const p = PRODS[c];
     const sp = SETOR.setorProds[c];
-    // contar quantos clientes compram este produto
     let compradores = 0, ultData = null;
     for(const cli of CLIS){
       const cp = cli.p[c];
@@ -388,10 +420,10 @@ function renderCliente(){
     if(compradores === 0){ nNenhum++; if(p.c==='A') nA++; }
     if(fc && p.c!==fc) continue;
     if(busca && !(c.toLowerCase().includes(busca)||p.d.toLowerCase().includes(busca))) continue;
-    if(fs==='naocompra' && compradores !== 0) continue;
-    if(fs==='compra' && compradores !== N) continue;
-    if(fs==='oportunidade' && !oport) continue;
-    if(fs==='parcial' && !(compradores>0 && compradores<N)) continue;
+    if(fs==='naocompra'   && compradores !== 0) continue;
+    if(fs==='compra'      && compradores !== N) continue;
+    if(fs==='oportunidade'&& !oport) continue;
+    if(fs==='parcial'     && !(compradores>0 && compradores<N)) continue;
     rows.push({c,p,sp,compradores,ultData,oport});
   }
   rows.sort((a,b) => {
@@ -424,18 +456,115 @@ function renderCliente(){
 ['fSetorBusca','fSetorMarca','fSetorCurva','fSetorStatus','fJanela'].forEach(id => {
   $('#'+id).addEventListener('input', () => { renderSetor(); if(id==='fJanela') renderResumo(); });
 });
-['fCliBusca','fCliCurva','fCliStatus'].forEach(id => $('#'+id).addEventListener('input', renderCliente));
+['fCliBusca','fCliCurva','fCliStatus'].forEach(id => {
+  const el = $('#'+id); if(el) el.addEventListener('input', renderCliente);
+});
 $('#fCliRede').addEventListener('change', () => renderChips());
 $('#fCliSearch').addEventListener('input', () => renderChips());
+const _fCliOrdem = $('#fCliOrdem');
+if(_fCliOrdem) _fCliOrdem.addEventListener('change', () => renderChips());
+const _fCliCurvaFiltro = $('#fCliCurvaFiltro');
+if(_fCliCurvaFiltro) _fCliCurvaFiltro.addEventListener('change', () => { renderChips(); });
 
-/* ===== AUTO-LOGIN NA RECARGA ===== */
-const savedFk = sessionStorage.getItem('nc_fk'), savedAccRaw = sessionStorage.getItem('nc_acc');
-if(savedFk && savedAccRaw){
+/* ===== EXPORTAR XLSX ===== */
+function exportarSetor(){
+  if(typeof XLSX === 'undefined'){ alert('Biblioteca de exportação não carregada.'); return; }
+  const rows = [
+    ['NÃO COMPRA — Relatório por Setor'],
+    ['Setor:', SETOR.setor],
+    ['Data:', new Date().toLocaleDateString('pt-BR')],
+    ['Período de análise:', $('#periodoInfo').textContent.replace('Análise: ','')],
+    [],
+    ['Código','Produto','Marca','Curva Produto','Status','Última venda','Nº clientes que compram']
+  ];
+  const lbl = {vende:'Vende', parou:'Parou', nunca:'Nunca vendeu'};
+  $$('#tblSetor tbody tr').forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if(tds.length < 7) return;
+    rows.push([
+      tds[0].textContent.trim(),
+      tds[1].textContent.trim(),
+      tds[2].textContent.trim(),
+      tds[3].textContent.trim(),
+      tds[4].textContent.trim(),
+      tds[5].textContent.trim(),
+      tds[6].textContent.trim()
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:14},{wch:45},{wch:12},{wch:14},{wch:15},{wch:14},{wch:22}];
+  // Mesclar título
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:6}}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Por Setor');
+  XLSX.writeFile(wb, `NaoCompra_${SETOR.setor}_Setor_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportarCliente(){
+  if(typeof XLSX === 'undefined'){ alert('Biblioteca de exportação não carregada.'); return; }
+  if(CLIS.length === 0){ alert('Selecione pelo menos um cliente.'); return; }
+  const multi = CLIS.length > 1;
+  const nomesClis = CLIS.map(c => {
+    const cv = c.curvaC || '?';
+    return `${c.n} [Curva ${cv} · ${fmtVal(c._totalV||0)}]`;
+  }).join('; ');
+
+  const rows = [
+    ['NÃO COMPRA — Relatório por Cliente'],
+    ['Setor:', SETOR.setor],
+    multi
+      ? ['Clientes selecionados:', CLIS.length + ' clientes']
+      : ['Cliente:', CLIS[0].n],
+    multi
+      ? ['Nomes:', nomesClis]
+      : ['Curva do cliente:', CLIS[0].curvaC + ' · ' + fmtVal(CLIS[0]._totalV||0) + ' em compras (18 meses)'],
+    ['Data:', new Date().toLocaleDateString('pt-BR')],
+    ['Período:', $('#periodoInfo').textContent.replace('Análise: ','')],
+    [],
+    multi
+      ? ['Código','Produto','Marca','Curva Produto','Compradores','Setor vende?','Última compra']
+      : ['Código','Produto','Marca','Curva Produto','Situação','Setor vende?','Última compra']
+  ];
+  $$('#tblCli tbody tr').forEach(tr => {
+    const tds = tr.querySelectorAll('td');
+    if(tds.length < 7) return;
+    rows.push([
+      tds[0].textContent.trim(),
+      tds[1].textContent.trim(),
+      tds[2].textContent.trim(),
+      tds[3].textContent.trim(),
+      tds[4].textContent.trim().replace(/OPORTUNIDADE/g,''),
+      tds[5].textContent.trim(),
+      tds[6].textContent.trim()
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:14},{wch:45},{wch:12},{wch:14},{wch:18},{wch:18},{wch:14}];
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:6}},
+    ...(multi ? [{s:{r:3,c:1},e:{r:3,c:6}}] : [])
+  ];
+  const wb = XLSX.utils.book_new();
+  const nomePlan = multi ? 'Múltiplos Clientes' : CLIS[0].n.slice(0,31);
+  XLSX.utils.book_append_sheet(wb, ws, nomePlan);
+  const sufixo = multi ? `${CLIS.length}clientes` : CLIS[0].c;
+  XLSX.writeFile(wb, `NaoCompra_${SETOR.setor}_Cliente_${sufixo}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// Botões de exportar
+document.getElementById('btnExportSetor').onclick = exportarSetor;
+document.getElementById('btnExportCliente').onclick = exportarCliente;
+
+/* ===== AUTO-LOGIN (localStorage 30 dias) ===== */
+const saved = lsLoad();
+if(saved){
   try {
-    const acc = JSON.parse(savedAccRaw);
-    if(MAN.acessos.some(a => a.h===acc.h)){
+    if(MAN.acessos.some(a => a.h === saved.acc.h)){
       $('#gate').style.display = 'none';
-      iniciar(savedFk, acc);
+      iniciar(saved.fk, saved.acc);
+    } else {
+      lsClear();
     }
-  } catch(e){}
+  } catch(e){ lsClear(); }
 }

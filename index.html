@@ -140,6 +140,11 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
 .comp-none{color:var(--vermelho);font-weight:700}
 .comp-all{color:var(--verde-2);font-weight:700}
 .comp-partial{color:var(--ambar);font-weight:700}
+.chip-curva{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:.65rem;font-weight:800;color:#fff;flex-shrink:0}
+.chip.sel .chip-curva{opacity:.9}
+.export-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--verde-2);color:#fff;font-family:'Plus Jakarta Sans';font-weight:700;font-size:.82rem;border:none;cursor:pointer;margin-left:auto}
+.export-btn:hover{opacity:.88}
+.tab-hdr{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
 
 @media(max-width:600px){
   .cards.mini{grid-template-columns:1fr}
@@ -246,6 +251,7 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
         <label class="jan">Vende = comprou nos últimos
           <select id="fJanela"><option value="90">90</option><option value="120" selected>120</option><option value="180">180</option><option value="365">365</option><option value="99999">qualquer</option></select> dias
         </label>
+        <button id="btnExportSetor" class="export-btn" type="button">⬇ Exportar XLSX</button>
       </div>
       <p class="muted" id="setorCount"></p>
       <div class="tbl-wrap"><table id="tblSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Situação</th><th>Última venda</th><th>Clientes</th></tr></thead><tbody></tbody></table></div>
@@ -257,6 +263,16 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
       <div class="filtros">
         <select id="fCliRede"><option value="">Todas as redes</option></select>
         <input type="search" id="fCliSearch" placeholder="Buscar cliente…">
+        <select id="fCliCurvaFiltro" title="Filtrar chips por curva do cliente">
+          <option value="">Todas as curvas</option>
+          <option value="A">🔴 Curva A</option>
+          <option value="B">🟡 Curva B</option>
+          <option value="C">🔵 Curva C</option>
+        </select>
+        <select id="fCliOrdem" title="Ordenar chips">
+          <option value="curva">Ordenar: Curva (A → C)</option>
+          <option value="nome">Ordenar: Nome</option>
+        </select>
       </div>
       <div class="cli-sel-bar">
         <button id="btnSelectAll" class="btn-sm" type="button">Selecionar todos</button>
@@ -276,6 +292,7 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
           <option value="compra">Compra / Todos compram</option>
           <option value="">Todos</option>
         </select>
+        <button id="btnExportCliente" class="export-btn" type="button">⬇ Exportar XLSX</button>
       </div>
 
       <div id="cliResumo" class="cards mini hidden" style="margin-top:16px">
@@ -298,6 +315,7 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
 
 <script src="dados/manifest.js"></script>
 <script src="dados/base.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
