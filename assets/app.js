@@ -283,11 +283,15 @@ function calcularCurvaClientes(clientes){
   });
   const sorted = [...clientes].sort((a,b) => b._totalV - a._totalV);
   const totalGeral = sorted.reduce((s,c) => s + c._totalV, 0);
-  let acum = 0;
+  if(totalGeral === 0){ clientes.forEach(c => c.curvaC = 'C'); return; }
+  // Atribui a curva ANTES de somar ao acumulado: o cliente que "cruza" 80% pertence ao grupo A
+  let acum = 0, fase = 'A';
   sorted.forEach(c => {
+    c.curvaC = fase;
     acum += c._totalV;
-    const pct = totalGeral > 0 ? acum / totalGeral : 1;
-    c.curvaC = pct <= 0.80 ? 'A' : pct <= 0.95 ? 'B' : 'C';
+    const pct = acum / totalGeral;
+    if(fase === 'A' && pct >= 0.80) fase = 'B';
+    else if(fase === 'B' && pct >= 0.95) fase = 'C';
   });
 }
 
