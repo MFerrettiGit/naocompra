@@ -145,6 +145,15 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
 .export-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;background:var(--verde-2);color:#fff;font-family:'Plus Jakarta Sans';font-weight:700;font-size:.82rem;border:none;cursor:pointer;margin-left:auto}
 .export-btn:hover{opacity:.88}
 .tab-hdr{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.curva-info{border:1px solid var(--line);border-radius:12px;padding:0;margin-top:8px;background:var(--card);overflow:hidden}
+.curva-info summary{cursor:pointer;padding:10px 16px;font-size:.82rem;font-weight:600;color:var(--muted);list-style:none;display:flex;align-items:center;gap:6px;user-select:none}
+.curva-info summary::-webkit-details-marker{display:none}
+.curva-info[open] summary{color:var(--azul);border-bottom:1px solid var(--line)}
+.curva-info-body{padding:14px 18px;font-size:.83rem;display:flex;flex-direction:column;gap:10px}
+.curva-info-body ul{padding-left:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.curva-info-body li{display:flex;align-items:flex-start;gap:8px}
+.curva-info-body li .pill{flex-shrink:0;margin-top:2px}
+.curva-info-nota{font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
 
 @media(max-width:600px){
   .cards.mini{grid-template-columns:1fr}
@@ -280,6 +289,18 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
         <span id="cliSelCount" class="cli-sel-count">Nenhum cliente selecionado</span>
       </div>
       <div id="cliChips" class="cli-chips"></div>
+      <details class="curva-info">
+        <summary>ℹ Como é calculada a curva ABC dos clientes?</summary>
+        <div class="curva-info-body">
+          <p>A curva ABC classifica os clientes pelo <strong>valor total comprado nos últimos 18 meses</strong>, do maior para o menor (análise de Pareto):</p>
+          <ul>
+            <li><span class="pill cv-A">A</span> <strong>Mais importantes</strong> — juntos representam os primeiros <strong>80%</strong> do faturamento total do setor. São poucos clientes, mas concentram a maior parte do volume.</li>
+            <li><span class="pill cv-B">B</span> <strong>Intermediários</strong> — representam de 80% a <strong>95%</strong> do faturamento acumulado. Têm bom potencial de crescimento.</li>
+            <li><span class="pill cv-C">C</span> <strong>Menor volume</strong> — os demais clientes, que juntos representam os últimos <strong>5%</strong> do faturamento. Compram com menos frequência ou em menor volume.</li>
+          </ul>
+          <p class="curva-info-nota">A curva é calculada <em>dentro do setor</em>, com base nas compras registradas no período de análise (18 meses). Um cliente curva C neste setor pode ser grande em outro setor.</p>
+        </div>
+      </details>
 
       <!-- Filtros de produto (aparece após seleção) -->
       <div class="filtros" id="cliProdFiltros" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">

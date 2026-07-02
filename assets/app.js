@@ -299,9 +299,11 @@ function popularClientes(){
   _allClis = [...SETOR.clientes];
   calcularCurvaClientes(_allClis);
   // ordenação padrão: curva A → B → C, depois nome
+  const _ORD = {A:0,B:1,C:2};
   _allClis.sort((a,b) => {
-    const o = {A:0,B:1,C:2};
-    return (o[a.curvaC]||2) - (o[b.curvaC]||2) || a.n.localeCompare(b.n);
+    const oa = a.curvaC in _ORD ? _ORD[a.curvaC] : 3;
+    const ob = b.curvaC in _ORD ? _ORD[b.curvaC] : 3;
+    return oa - ob || a.n.localeCompare(b.n);
   });
   CLIS = [];
   const redes = [...new Set(_allClis.map(c => c.r || '').filter(Boolean))].sort();
