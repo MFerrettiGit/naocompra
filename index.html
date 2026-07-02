@@ -154,6 +154,11 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
 .curva-info-body li{display:flex;align-items:flex-start;gap:8px}
 .curva-info-body li .pill{flex-shrink:0;margin-top:2px}
 .curva-info-nota{font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+.curva-legenda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:6px;margin-bottom:2px;font-size:.78rem;color:var(--muted)}
+.curva-legenda-titulo{font-weight:700;color:var(--ink);font-family:'Plus Jakarta Sans'}
+.curva-legenda-item{display:inline-flex;align-items:center;gap:5px}
+.curva-legenda-sep{color:var(--line)}
+.curva-legenda-nota{font-style:italic;font-size:.74rem}
 
 @media(max-width:600px){
   .cards.mini{grid-template-columns:1fr}
@@ -289,18 +294,16 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
         <span id="cliSelCount" class="cli-sel-count">Nenhum cliente selecionado</span>
       </div>
       <div id="cliChips" class="cli-chips"></div>
-      <details class="curva-info">
-        <summary>ℹ Como é calculada a curva ABC dos clientes?</summary>
-        <div class="curva-info-body">
-          <p>A curva ABC classifica os clientes pelo <strong>valor total comprado nos últimos 18 meses</strong>, do maior para o menor (análise de Pareto):</p>
-          <ul>
-            <li><span class="pill cv-A">A</span> <strong>Mais importantes</strong> — juntos representam os primeiros <strong>80%</strong> do faturamento total do setor. São poucos clientes, mas concentram a maior parte do volume.</li>
-            <li><span class="pill cv-B">B</span> <strong>Intermediários</strong> — representam de 80% a <strong>95%</strong> do faturamento acumulado. Têm bom potencial de crescimento.</li>
-            <li><span class="pill cv-C">C</span> <strong>Menor volume</strong> — os demais clientes, que juntos representam os últimos <strong>5%</strong> do faturamento. Compram com menos frequência ou em menor volume.</li>
-          </ul>
-          <p class="curva-info-nota">A curva é calculada <em>dentro do setor</em>, com base nas compras registradas no período de análise (18 meses). Um cliente curva C neste setor pode ser grande em outro setor.</p>
-        </div>
-      </details>
+      <div class="curva-legenda">
+        <span class="curva-legenda-titulo">Curva ABC (18 meses):</span>
+        <span class="curva-legenda-item"><span class="pill cv-A">A</span> Primeiros 80% do faturamento</span>
+        <span class="curva-legenda-sep">·</span>
+        <span class="curva-legenda-item"><span class="pill cv-B">B</span> 80–95%</span>
+        <span class="curva-legenda-sep">·</span>
+        <span class="curva-legenda-item"><span class="pill cv-C">C</span> Últimos 5%</span>
+        <span class="curva-legenda-sep">·</span>
+        <span class="curva-legenda-nota">ordenados do mais importante</span>
+      </div>
 
       <!-- Filtros de produto (aparece após seleção) -->
       <div class="filtros" id="cliProdFiltros" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
