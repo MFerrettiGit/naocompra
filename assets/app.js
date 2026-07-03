@@ -497,7 +497,7 @@ function abrirModalProduto(cod){
   const compradores = (_allClis || []).map(cli => {
     const cp = cli.p[cod];
     return cp ? { n: cli.n, curva: cli.curvaC, dt: cp[1], v: cp[0] } : null;
-  }).filter(Boolean).sort((a,b) => (b.dt||'').localeCompare(a.dt||''));
+  }).filter(Boolean).sort((a,b) => (b.v||0)-(a.v||0));
 
   let html = '';
   if(compradores.length === 0){
