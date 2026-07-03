@@ -171,11 +171,16 @@ document.getElementById('trocarAccBtn').onclick = () => { lsClear(); location.re
 
 /* ===== JANELA / STATUS ===== */
 function janela(){ return +$('#fJanela').value; }
+function mesesDesde(s){
+  const d = parseData(s);
+  if(!d) return Infinity;
+  return (REF.getFullYear() - d.getFullYear()) * 12 + (REF.getMonth() - d.getMonth());
+}
 function statusSetor(cod){
   const sp = SETOR.setorProds[cod];
   if(!sp) return {s:'nunca', ult:null, nCli:0, v:0};
-  const d = diasDesde(sp[1]);
-  return {s: d<=janela()?'vende':'parou', ult:sp[1], nCli:sp[2], v:sp[0], dias:d};
+  const m = mesesDesde(sp[1]);
+  return {s: m<=janela()?'vende':'parou', ult:sp[1], nCli:sp[2], v:sp[0], meses:m};
 }
 
 /* ===== TABS ===== */
@@ -453,10 +458,62 @@ function renderCliente(){
         : `<span class="st st-nunca">Não compra</span>${r.oport?'<span class="tag-op">OPORTUNIDADE</span>':''}`;
     }
     const setorVende = r.sp ? `<span class="simn sim">Sim</span> <span class="muted">(${r.sp[2]} cli.)</span>` : '<span class="nao">Não</span>';
-    return `<tr><td class="cod">${r.c}</td><td>${r.p.d}</td><td>${r.p.m}</td><td>${pill(r.p.c)}</td>
+    return `<tr style="cursor:pointer" data-cod="${r.c}" title="Clique para ver quais clientes compram este produto"><td class="cod">${r.c}</td><td>${r.p.d}</td><td>${r.p.m}</td><td>${pill(r.p.c)}</td>
       <td>${sitCol}</td><td>${setorVende}</td><td>${fmtData(r.ultData)}</td></tr>`;
   }).join('') : '<tr><td colspan="7" class="vazio">Nenhum produto neste filtro.</td></tr>';
+
+  $$('#tblCli tbody tr[data-cod]').forEach(tr => {
+    tr.onclick = () => abrirModalProduto(tr.dataset.cod);
+  });
 }
+
+/* ===== MODAL PRODUTO ===== */
+function abrirModalProduto(cod){
+  const p = PRODS[cod];
+  if(!p) return;
+  document.getElementById('modalProdNome').textContent = p.d;
+  document.getElementById('modalProdSub').textContent = cod + ' · ' + p.m + ' · Curva ' + p.c;
+
+  // Quais clientes selecionados compram este produto
+  const compradores = CLIS.map(cli => {
+    const cp = cli.p[cod];
+    return cp ? { n: cli.n, curva: cli.curvaC, dt: cp[1], v: cp[0] } : null;
+  }).filter(Boolean).sort((a,b) => (b.dt||'').localeCompare(a.dt||''));
+
+  // Quais clientes do setor (não necessariamente selecionados) compram
+  const todosCompradores = (_allClis || []).map(cli => {
+    const cp = cli.p[cod];
+    return cp ? { n: cli.n, curva: cli.curvaC, dt: cp[1], v: cp[0] } : null;
+  }).filter(Boolean).sort((a,b) => (b.dt||'').localeCompare(a.dt||''));
+
+  const usarTodos = CLIS.length === 0;
+  const lista = usarTodos ? todosCompradores : compradores;
+  const total = usarTodos ? todosCompradores.length : todosCompradores.length;
+  const sel = usarTodos ? todosCompradores.length : compradores.length;
+
+  let html = '';
+  if(lista.length === 0){
+    html = `<div class="prod-modal-none">${CLIS.length ? 'Nenhum dos clientes selecionados compra este produto.' : 'Nenhum cliente do setor compra este produto.'}</div>`;
+  } else {
+    html += `<div class="prod-modal-stat"><span><b>${sel}</b> ${usarTodos ? 'clientes do setor' : 'dos ' + CLIS.length + ' selecionados'} compram</span><span><b>${total}</b> no setor total</span></div>`;
+    html += lista.map(r =>
+      `<div class="prod-modal-row">
+        <span class="pill cv-${r.curva}">${r.curva}</span>
+        <span class="nm">${r.n}</span>
+        <span class="dt">${fmtData(r.dt)}</span>
+        <span class="vl">${fmtVal(r.v)}</span>
+      </div>`
+    ).join('');
+  }
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('prodModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+document.getElementById('modalClose').onclick = fecharModal;
+document.getElementById('prodModal').onclick = e => { if(e.target === document.getElementById('prodModal')) fecharModal(); };
+document.addEventListener('keydown', e => { if(e.key === 'Escape') fecharModal(); });
+function fecharModal(){ document.getElementById('prodModal').style.display = 'none'; document.body.style.overflow = ''; }
 
 /* ===== LISTENERS FILTROS ===== */
 ['fSetorBusca','fSetorMarca','fSetorCurva','fSetorStatus','fJanela'].forEach(id => {
