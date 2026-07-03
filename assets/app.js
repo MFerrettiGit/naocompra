@@ -292,11 +292,14 @@ function renderSetor(){
   $('#setorCount').textContent = rows.length + ' produto(s)';
   const lbl = {vende:'Vende', parou:'Parou', nunca:'Nunca vendeu'};
   $('#tblSetor tbody').innerHTML = rows.length
-    ? rows.map(r => `<tr>
+    ? rows.map(r => `<tr style="cursor:pointer" data-cod="${r.c}" title="Ver clientes">
         <td class="cod">${r.c}</td><td>${r.p.d}</td><td>${r.p.m}</td><td>${pill(r.p.c)}</td>
         <td class="st st-${r.st.s}">${lbl[r.st.s]}</td>
         <td>${fmtData(r.st.ult)}</td><td>${r.st.nCli||'—'}</td></tr>`).join('')
     : '<tr><td colspan="7" class="vazio">Nenhum produto neste filtro.</td></tr>';
+  $$('#tblSetor tbody tr[data-cod]').forEach(tr => {
+    tr.onclick = () => abrirModalProduto(tr.dataset.cod);
+  });
 }
 
 /* ===== CURVA ABC DE CLIENTES (Pareto 80/95) ===== */
