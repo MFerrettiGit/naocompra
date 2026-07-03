@@ -264,6 +264,9 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
       <h2>🔴 Curva A que o setor não vende <span class="muted">— prioridade máxima</span></h2>
       <p class="muted" id="resumoCurvaAvazio" style="display:none">Parabéns! O setor vende todos os produtos curva A. 🎉</p>
       <div class="tbl-wrap"><table id="tblResumoA"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th></tr></thead><tbody></tbody></table></div>
+      <h2>⚠️ Parou de vender <span class="muted" id="resumoParouSub">— sem venda nos últimos 180 dias</span></h2>
+      <p class="muted" id="resumoParouVazio" style="display:none">Nenhum produto nesta situação.</p>
+      <div class="tbl-wrap"><table id="tblResumoParou"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Última venda</th><th>Dias sem vender</th></tr></thead><tbody></tbody></table></div>
       <h2>Maiores oportunidades <span class="muted">— curva A/B vendidas a poucos clientes</span></h2>
       <div class="tbl-wrap"><table id="tblOportSetor"><thead><tr><th>Código</th><th>Produto</th><th>Marca</th><th>Curva</th><th>Clientes que compram</th></tr></thead><tbody></tbody></table></div>
     </section>
@@ -282,7 +285,7 @@ footer{margin-top:50px;padding:28px 0 44px;color:var(--muted);font-size:.82rem;t
           <option value="">Todos</option>
         </select>
         <label class="jan">Vende = comprou nos últimos
-          <select id="fJanela"><option value="3">3</option><option value="6">6</option><option value="12" selected>12</option><option value="18">18</option></select> meses
+          <select id="fJanela"><option value="90">90</option><option value="120">120</option><option value="180" selected>180</option><option value="365">365</option></select> dias
         </label>
         <button id="btnExportSetor" class="export-btn" type="button">⬇ Exportar XLSX</button>
       </div>

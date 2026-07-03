@@ -171,16 +171,11 @@ document.getElementById('trocarAccBtn').onclick = () => { lsClear(); location.re
 
 /* ===== JANELA / STATUS ===== */
 function janela(){ return +$('#fJanela').value; }
-function mesesDesde(s){
-  const d = parseData(s);
-  if(!d) return Infinity;
-  return (REF.getFullYear() - d.getFullYear()) * 12 + (REF.getMonth() - d.getMonth());
-}
 function statusSetor(cod){
   const sp = SETOR.setorProds[cod];
   if(!sp) return {s:'nunca', ult:null, nCli:0, v:0};
-  const m = mesesDesde(sp[1]);
-  return {s: m<=janela()?'vende':'parou', ult:sp[1], nCli:sp[2], v:sp[0], meses:m};
+  const d = diasDesde(sp[1]);
+  return {s: d<=janela()?'vende':'parou', ult:sp[1], nCli:sp[2], v:sp[0], dias:d};
 }
 
 /* ===== TABS ===== */
@@ -234,9 +229,13 @@ function renderResumo(){
   $('#cCurvaA').textContent = aNao.length;
   const ref = BASE.ref;
   const [ry,rm,rd] = ref.split('-').map(Number);
-  const ini = new Date(ry, rm-1, rd); ini.setMonth(ini.getMonth()-18);
-  const iniStr = String(ini.getDate()).padStart(2,'0')+'/'+String(ini.getMonth()+1).padStart(2,'0')+'/'+ini.getFullYear();
-  $('#periodoInfo').textContent = `Análise: ${iniStr} a ${fmtData(ref)} (18 meses)`;
+  // Início = 1º dia do mês, 18 meses atrás (mês completo)
+  const ini = new Date(ry, rm-1, 1); ini.setMonth(ini.getMonth()-18);
+  const iniStr = '01/'+String(ini.getMonth()+1).padStart(2,'0')+'/'+ini.getFullYear();
+  // Fim = último dia do mês de referência
+  const fimMes = new Date(ry, rm, 0);
+  const fimStr = String(fimMes.getDate()).padStart(2,'0')+'/'+String(rm).padStart(2,'0')+'/'+ry;
+  $('#periodoInfo').textContent = `Análise: ${iniStr} a ${fimStr} (18 meses completos)`;
   $('#cardCobertura').onclick = () => switchTab('setor', 'vende');
   $('#cardNaoVende').onclick  = () => switchTab('setor', 'nunca');
   $('#cardCurvaA').onclick    = () => { if(aNao.length) document.getElementById('tblResumoA').scrollIntoView({behavior:'smooth', block:'start'}); };
@@ -248,6 +247,21 @@ function renderResumo(){
     $('#resumoCurvaAvazio').style.display = 'none';
     tb.innerHTML = aNao.map(c => `<tr><td class="cod">${c}</td><td>${PRODS[c].d}</td><td>${PRODS[c].m}</td><td>${pill('A')}</td></tr>`).join('');
   }
+  // Parou de vender (status = parou no janela atual de 180 dias)
+  const jan = janela();
+  $('#resumoParouSub').textContent = `— sem venda nos últimos ${jan} dias`;
+  const parou = COD_ORDEM.map(c => ({c, st:statusSetor(c)})).filter(x => x.st.s==='parou')
+    .sort((a,b) => (b.st.dias||0)-(a.st.dias||0));
+  if(parou.length===0){
+    $('#resumoParouVazio').style.display = 'block';
+    $('#tblResumoParou tbody').innerHTML = '';
+  } else {
+    $('#resumoParouVazio').style.display = 'none';
+    $('#tblResumoParou tbody').innerHTML = parou.map(({c,st}) =>
+      `<tr><td class="cod">${c}</td><td>${PRODS[c].d}</td><td>${PRODS[c].m}</td><td>${pill(PRODS[c].c)}</td><td>${fmtData(st.ult)}</td><td style="font-weight:700;color:var(--ambar)">${st.dias} dias</td></tr>`
+    ).join('');
+  }
+
   const op = COD_ORDEM.filter(c => SETOR.setorProds[c] && (PRODS[c].c==='A'||PRODS[c].c==='B'))
     .map(c => ({c, n:SETOR.setorProds[c][2]})).sort((a,b) => a.n-b.n).slice(0,25);
   $('#tblOportSetor tbody').innerHTML = op.map(o => `<tr><td class="cod">${o.c}</td><td>${PRODS[o.c].d}</td><td>${PRODS[o.c].m}</td><td>${pill(PRODS[o.c].c)}</td><td>${o.n}</td></tr>`).join('');
@@ -517,7 +531,7 @@ function fecharModal(){ document.getElementById('prodModal').style.display = 'no
 
 /* ===== LISTENERS FILTROS ===== */
 ['fSetorBusca','fSetorMarca','fSetorCurva','fSetorStatus','fJanela'].forEach(id => {
-  $('#'+id).addEventListener('input', () => { renderSetor(); if(id==='fJanela') renderResumo(); });
+  $('#'+id).addEventListener('input', () => { renderSetor(); if(id==='fJanela') { renderResumo(); } });
 });
 ['fCliBusca','fCliCurva','fCliStatus'].forEach(id => {
   const el = $('#'+id); if(el) el.addEventListener('input', renderCliente);
