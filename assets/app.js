@@ -540,90 +540,223 @@ if(_fCliOrdem) _fCliOrdem.addEventListener('change', () => renderChips());
 const _fCliCurvaFiltro = $('#fCliCurvaFiltro');
 if(_fCliCurvaFiltro) _fCliCurvaFiltro.addEventListener('change', () => { renderChips(); });
 
-/* ===== EXPORTAR XLSX ===== */
-function exportarSetor(){
-  if(typeof XLSX === 'undefined'){ alert('Biblioteca de exportação não carregada.'); return; }
-  const rows = [
-    ['NÃO COMPRA — Relatório por Setor'],
-    ['Setor:', SETOR.setor],
-    ['Data:', new Date().toLocaleDateString('pt-BR')],
-    ['Período de análise:', $('#periodoInfo').textContent.replace('Análise: ','')],
-    [],
-    ['Código','Produto','Marca','Curva Produto','Status','Última venda','Nº clientes que compram']
-  ];
-  const lbl = {vende:'Vende', parou:'Parou', nunca:'Nunca vendeu'};
-  $$('#tblSetor tbody tr').forEach(tr => {
-    const tds = tr.querySelectorAll('td');
-    if(tds.length < 7) return;
-    rows.push([
-      tds[0].textContent.trim(),
-      tds[1].textContent.trim(),
-      tds[2].textContent.trim(),
-      tds[3].textContent.trim(),
-      tds[4].textContent.trim(),
-      tds[5].textContent.trim(),
-      tds[6].textContent.trim()
-    ]);
-  });
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:14},{wch:45},{wch:12},{wch:14},{wch:15},{wch:14},{wch:22}];
-  // Mesclar título
-  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:6}}];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Por Setor');
-  XLSX.writeFile(wb, `NaoCompra_${SETOR.setor}_Setor_${new Date().toISOString().slice(0,10)}.xlsx`);
+/* ===== EXPORTAR XLSX (ExcelJS) ===== */
+const COR = { azul:'FF2B2FA8', azulClaro:'FFE8E9FF', verde:'FF198754', verdeClaro:'FFD4EDDA',
+               ambar:'FFFF8800', ambarClaro:'FFFFF3CD', vermelho:'FFB02A37', vermelhoClaro:'FFFAD4D4',
+               cinza:'FF6B6F8A', cinzaClaro:'FFF4F6FB', branco:'FFFFFFFF', preto:'FF16182E',
+               amarelo:'FFFFFF00', roxo:'FF7C3AED', teal:'FF0E7490' };
+
+function _styleCell(cell, opts={}){
+  if(opts.bold||opts.bgColor||opts.color||opts.size||opts.align||opts.border||opts.wrap){
+    cell.font = { bold:!!opts.bold, color:{argb: opts.color||COR.preto}, size:opts.size||11, name:'Calibri' };
+    if(opts.bgColor) cell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:opts.bgColor} };
+    cell.alignment = { vertical:'middle', horizontal:opts.align||'left', wrapText:!!opts.wrap };
+    if(opts.border) cell.border = {
+      top:{style:'thin',color:{argb:'FFD0D3E8'}}, bottom:{style:'thin',color:{argb:'FFD0D3E8'}},
+      left:{style:'thin',color:{argb:'FFD0D3E8'}}, right:{style:'thin',color:{argb:'FFD0D3E8'}}
+    };
+  }
 }
 
-function exportarCliente(){
-  if(typeof XLSX === 'undefined'){ alert('Biblioteca de exportação não carregada.'); return; }
-  if(CLIS.length === 0){ alert('Selecione pelo menos um cliente.'); return; }
-  const multi = CLIS.length > 1;
-  const nomesClis = CLIS.map(c => {
-    const cv = c.curvaC || '?';
-    return `${c.n} [Curva ${cv} · ${fmtVal(c._totalV||0)}]`;
-  }).join('; ');
+function _titulo(ws, txt, ncols, row){
+  ws.mergeCells(row,1,row,ncols);
+  const c = ws.getCell(row,1);
+  c.value = txt;
+  _styleCell(c,{bold:true, bgColor:COR.azul, color:COR.branco, size:14, align:'center'});
+  ws.getRow(row).height = 28;
+}
 
-  const rows = [
-    ['NÃO COMPRA — Relatório por Cliente'],
-    ['Setor:', SETOR.setor],
-    multi
-      ? ['Clientes selecionados:', CLIS.length + ' clientes']
-      : ['Cliente:', CLIS[0].n],
-    multi
-      ? ['Nomes:', nomesClis]
-      : ['Curva do cliente:', CLIS[0].curvaC + ' · ' + fmtVal(CLIS[0]._totalV||0) + ' em compras (18 meses)'],
-    ['Data:', new Date().toLocaleDateString('pt-BR')],
-    ['Período:', $('#periodoInfo').textContent.replace('Análise: ','')],
-    [],
-    multi
-      ? ['Código','Produto','Marca','Curva Produto','Compradores','Setor vende?','Última compra']
-      : ['Código','Produto','Marca','Curva Produto','Situação','Setor vende?','Última compra']
+function _meta(ws, label, val, ncols, row){
+  ws.mergeCells(row,2,row,ncols);
+  const cL = ws.getCell(row,1), cV = ws.getCell(row,2);
+  cL.value = label; _styleCell(cL,{bold:true, bgColor:COR.cinzaClaro, color:COR.cinza});
+  cV.value = val;   _styleCell(cV,{bgColor:COR.cinzaClaro});
+  ws.getRow(row).height = 18;
+}
+
+function _header(ws, cols, row){
+  cols.forEach((h,i)=>{
+    const c = ws.getCell(row, i+1);
+    c.value = h;
+    _styleCell(c,{bold:true, bgColor:COR.azul, color:COR.branco, align:'center', border:true});
+  });
+  ws.getRow(row).height = 20;
+}
+
+function _periodoStr(){
+  return ($('#periodoInfo')||{}).textContent
+    ? $('#periodoInfo').textContent.replace('Análise: ','')
+    : '18 meses';
+}
+
+async function exportarSetor(){
+  if(typeof ExcelJS === 'undefined'){ alert('Biblioteca de exportação não carregada.'); return; }
+
+  // Coletar dados direto do JS (não do DOM)
+  const filtroStatus = $('#fSetorStatus').value; // todos/naoVende/vende/parou/nunca
+  const filtroMarca  = $('#fMarca').value;
+  const filtroCurva  = $('#fCurva').value;
+  const jan = janela();
+  const lbl = {vende:'Vende', parou:'Parou', nunca:'Nunca vendeu'};
+
+  const dados = COD_ORDEM.map(c => {
+    const p = PRODS[c]; if(!p) return null;
+    if(filtroMarca !== 'todas' && p.m !== filtroMarca) return null;
+    if(filtroCurva !== 'todas' && p.c !== filtroCurva) return null;
+    const st = statusSetor(c);
+    if(filtroStatus === 'naoVende' && st.s === 'vende') return null;
+    if(filtroStatus === 'vende'    && st.s !== 'vende') return null;
+    if(filtroStatus === 'parou'    && st.s !== 'parou') return null;
+    if(filtroStatus === 'nunca'    && st.s !== 'nunca') return null;
+    return { cod:c, nome:p.d, marca:p.m, curva:p.c, status:lbl[st.s], ult:fmtData(st.ult), nCli:st.nCli||0, dias:st.dias||null, s:st.s };
+  }).filter(Boolean);
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'M. Ferretti — NÃO COMPRA';
+  const ws = wb.addWorksheet('Por Setor');
+  const NC = 7;
+
+  ws.columns = [
+    {width:16},{width:46},{width:14},{width:13},{width:14},{width:14},{width:22}
   ];
-  $$('#tblCli tbody tr').forEach(tr => {
-    const tds = tr.querySelectorAll('td');
-    if(tds.length < 7) return;
-    rows.push([
-      tds[0].textContent.trim(),
-      tds[1].textContent.trim(),
-      tds[2].textContent.trim(),
-      tds[3].textContent.trim(),
-      tds[4].textContent.trim().replace(/OPORTUNIDADE/g,''),
-      tds[5].textContent.trim(),
-      tds[6].textContent.trim()
-    ]);
+
+  _titulo(ws, `NÃO COMPRA — ${SETOR.setor}`, NC, 1);
+  _meta(ws, 'Data:', new Date().toLocaleDateString('pt-BR'), NC, 2);
+  _meta(ws, 'Período:', _periodoStr(), NC, 3);
+  _meta(ws, 'Janela "Vende":', `Compra nos últimos ${jan} dias`, NC, 4);
+  _meta(ws, 'Filtro:', filtroStatus==='todos'?'Todos os produtos':
+    filtroStatus==='naoVende'?'Só os que NÃO vende':
+    filtroStatus==='vende'?'Vende':filtroStatus==='parou'?'Parou':'Nunca vendeu', NC, 5);
+  ws.addRow([]);
+
+  _header(ws, ['Código','Produto','Marca','Curva','Situação','Última venda','Nº clientes'], 7);
+
+  dados.forEach((d,i) => {
+    const r = ws.addRow([d.cod, d.nome, d.marca, d.curva, d.status, d.ult, d.nCli||'—']);
+    r.height = 17;
+    let bg = i%2===0 ? COR.branco : COR.cinzaClaro;
+    let statusColor = COR.preto;
+    if(d.s === 'nunca'){ bg = COR.vermelhoClaro; statusColor = COR.vermelho; }
+    else if(d.s === 'parou'){ bg = COR.ambarClaro; statusColor = COR.ambar; }
+    r.eachCell((cell,col)=>{
+      cell.fill = {type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+      cell.font = { name:'Calibri', size:10,
+        color:{argb: col===5 ? statusColor : COR.preto},
+        bold: col===5 };
+      cell.alignment = {vertical:'middle', horizontal: col<=2?'left':'center'};
+      cell.border = {bottom:{style:'hair',color:{argb:'FFD0D3E8'}}};
+    });
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:14},{wch:45},{wch:12},{wch:14},{wch:18},{wch:18},{wch:14}];
-  ws['!merges'] = [
-    {s:{r:0,c:0},e:{r:0,c:6}},
-    ...(multi ? [{s:{r:3,c:1},e:{r:3,c:6}}] : [])
-  ];
-  const wb = XLSX.utils.book_new();
-  const nomePlan = multi ? 'Múltiplos Clientes' : CLIS[0].n.slice(0,31);
-  XLSX.utils.book_append_sheet(wb, ws, nomePlan);
+  // Linha de totais
+  ws.addRow([]);
+  const rTot = ws.addRow(['','TOTAL','','',`${dados.length} produtos`,'','']);
+  rTot.height = 18;
+  rTot.eachCell(cell=>{
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:COR.azulClaro}};
+    cell.font={bold:true,name:'Calibri',size:10};
+    cell.alignment={vertical:'middle'};
+  });
+
+  // Legenda
+  ws.addRow([]);
+  ws.addRow(['LEGENDA:']);
+  [['Nunca vendeu','Produto nunca foi vendido a nenhum cliente deste setor',COR.vermelhoClaro,COR.vermelho],
+   ['Parou','Última venda há mais de '+jan+' dias',COR.ambarClaro,COR.ambar],
+   ['Vende','Compra nos últimos '+jan+' dias — produto ativo',COR.branco,COR.verde]
+  ].forEach(([st,desc,bg,cor])=>{
+    const r = ws.addRow([st, desc]);
+    r.getCell(1).font={bold:true,color:{argb:cor},name:'Calibri',size:10};
+    r.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+    r.getCell(2).font={name:'Calibri',size:10};
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `NaoCompra_${SETOR.setor}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.click();
+}
+
+async function exportarCliente(){
+  if(typeof ExcelJS === 'undefined'){ alert('Biblioteca de exportação não carregada.'); return; }
+  if(CLIS.length === 0){ alert('Selecione pelo menos um cliente.'); return; }
+
+  const multi = CLIS.length > 1;
+  const filtroMarca = $('#fMarcaCli').value;
+  const filtroCurva = $('#fCurvaCli').value;
+  const filtroStatus = $('#fCliStatus').value;
+  const jan = janela();
+  const lbl = {vende:'Vende', parou:'Parou', nunca:'Nunca vendeu'};
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'M. Ferretti — NÃO COMPRA';
+  const NC = 7;
+
+  for(const cli of CLIS){
+    const nomePlan = (cli.n||'Cliente').slice(0,31).replace(/[\\/*?:\[\]]/g,'');
+    const ws = wb.addWorksheet(nomePlan);
+    ws.columns = [{width:16},{width:46},{width:14},{width:13},{width:20},{width:14},{width:14}];
+
+    _titulo(ws, `NÃO COMPRA — ${SETOR.setor}`, NC, 1);
+    _meta(ws, 'Cliente:', cli.n, NC, 2);
+    _meta(ws, 'Curva:', `${cli.curvaC||'?'} · ${fmtVal(cli._totalV||0)} em compras (18 meses)`, NC, 3);
+    _meta(ws, 'Data:', new Date().toLocaleDateString('pt-BR'), NC, 4);
+    _meta(ws, 'Período:', _periodoStr(), NC, 5);
+    ws.addRow([]);
+
+    _header(ws, ['Código','Produto','Marca','Curva','Situação','Última compra (cliente)','Setor vende?'], 7);
+
+    // Dados do cliente
+    const dados = COD_ORDEM.map(c => {
+      const p = PRODS[c]; if(!p) return null;
+      if(filtroMarca !== 'todas' && p.m !== filtroMarca) return null;
+      if(filtroCurva !== 'todas' && p.c !== filtroCurva) return null;
+      const cp = cli.p[c];
+      const stS = statusSetor(c);
+      const compra = !!cp;
+      if(filtroStatus === 'naoCompra' && compra) return null;
+      if(filtroStatus === 'compra' && !compra) return null;
+      const sit = compra ? 'Compra' : 'Não compra';
+      return { cod:c, nome:p.d, marca:p.m, curva:p.c, sit, ultCli: cp ? fmtData(cp[1]) : '—',
+               setorVende: lbl[stS.s], compra, s:stS.s };
+    }).filter(Boolean);
+
+    dados.forEach((d,i)=>{
+      const r = ws.addRow([d.cod, d.nome, d.marca, d.curva, d.sit, d.ultCli, d.setorVende]);
+      r.height = 17;
+      const bg = d.compra ? (i%2===0?COR.branco:COR.cinzaClaro) : COR.vermelhoClaro;
+      const sitColor = d.compra ? COR.verde : COR.vermelho;
+      r.eachCell((cell,col)=>{
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+        cell.font={name:'Calibri',size:10,
+          color:{argb: col===5?sitColor:(col===7&&d.s==='parou'?COR.ambar:col===7&&d.s==='nunca'?COR.vermelho:COR.preto)},
+          bold: col===5};
+        cell.alignment={vertical:'middle', horizontal:col<=2?'left':'center'};
+        cell.border={bottom:{style:'hair',color:{argb:'FFD0D3E8'}}};
+      });
+    });
+
+    ws.addRow([]);
+    const naoCompra = dados.filter(d=>!d.compra).length;
+    const rTot = ws.addRow(['',`${dados.length} produtos listados · ${naoCompra} não compra · ${dados.length-naoCompra} compra`]);
+    ws.mergeCells(rTot.number,2,rTot.number,NC);
+    rTot.height=18;
+    rTot.eachCell(cell=>{
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:COR.azulClaro}};
+      cell.font={bold:true,name:'Calibri',size:10};
+      cell.alignment={vertical:'middle'};
+    });
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
   const sufixo = multi ? `${CLIS.length}clientes` : CLIS[0].c;
-  XLSX.writeFile(wb, `NaoCompra_${SETOR.setor}_Cliente_${sufixo}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  a.download = `NaoCompra_${SETOR.setor}_Cliente_${sufixo}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.click();
 }
 
 // Botões de exportar
