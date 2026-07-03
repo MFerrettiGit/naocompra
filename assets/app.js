@@ -245,7 +245,7 @@ function renderResumo(){
     $('#resumoCurvaAvazio').style.display = 'block'; tb.innerHTML = '';
   } else {
     $('#resumoCurvaAvazio').style.display = 'none';
-    tb.innerHTML = aNao.map(c => `<tr><td class="cod">${c}</td><td>${PRODS[c].d}</td><td>${PRODS[c].m}</td><td>${pill('A')}</td></tr>`).join('');
+    tb.innerHTML = aNao.map(c => `<tr style="cursor:pointer" data-cod="${c}" title="Ver clientes"><td class="cod">${c}</td><td>${PRODS[c].d}</td><td>${PRODS[c].m}</td><td>${pill('A')}</td></tr>`).join('');
   }
   // Parou de vender (status = parou no janela atual de 180 dias)
   const jan = janela();
@@ -258,13 +258,18 @@ function renderResumo(){
   } else {
     $('#resumoParouVazio').style.display = 'none';
     $('#tblResumoParou tbody').innerHTML = parou.map(({c,st}) =>
-      `<tr><td class="cod">${c}</td><td>${PRODS[c].d}</td><td>${PRODS[c].m}</td><td>${pill(PRODS[c].c)}</td><td>${fmtData(st.ult)}</td><td style="font-weight:700;color:var(--ambar)">${st.dias} dias</td></tr>`
+      `<tr style="cursor:pointer" data-cod="${c}" title="Ver clientes"><td class="cod">${c}</td><td>${PRODS[c].d}</td><td>${PRODS[c].m}</td><td>${pill(PRODS[c].c)}</td><td>${fmtData(st.ult)}</td><td style="font-weight:700;color:var(--ambar)">${st.dias} dias</td></tr>`
     ).join('');
   }
 
   const op = COD_ORDEM.filter(c => SETOR.setorProds[c] && (PRODS[c].c==='A'||PRODS[c].c==='B'))
     .map(c => ({c, n:SETOR.setorProds[c][2]})).sort((a,b) => a.n-b.n).slice(0,25);
-  $('#tblOportSetor tbody').innerHTML = op.map(o => `<tr><td class="cod">${o.c}</td><td>${PRODS[o.c].d}</td><td>${PRODS[o.c].m}</td><td>${pill(PRODS[o.c].c)}</td><td>${o.n}</td></tr>`).join('');
+  $('#tblOportSetor tbody').innerHTML = op.map(o => `<tr style="cursor:pointer" data-cod="${o.c}" title="Ver clientes"><td class="cod">${o.c}</td><td>${PRODS[o.c].d}</td><td>${PRODS[o.c].m}</td><td>${pill(PRODS[o.c].c)}</td><td>${o.n}</td></tr>`).join('');
+
+  // Clique em qualquer produto do resumo → abre modal de clientes
+  $$('#tab-resumo tbody tr[data-cod]').forEach(tr => {
+    tr.onclick = () => abrirModalProduto(tr.dataset.cod);
+  });
 }
 
 function renderSetor(){
