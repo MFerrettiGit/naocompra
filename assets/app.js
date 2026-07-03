@@ -493,29 +493,18 @@ function abrirModalProduto(cod){
   document.getElementById('modalProdNome').textContent = p.d;
   document.getElementById('modalProdSub').textContent = cod + ' · ' + p.m + ' · Curva ' + p.c;
 
-  // Quais clientes selecionados compram este produto
-  const compradores = CLIS.map(cli => {
+  // Todos os clientes do setor que compram este produto
+  const compradores = (_allClis || []).map(cli => {
     const cp = cli.p[cod];
     return cp ? { n: cli.n, curva: cli.curvaC, dt: cp[1], v: cp[0] } : null;
   }).filter(Boolean).sort((a,b) => (b.dt||'').localeCompare(a.dt||''));
-
-  // Quais clientes do setor (não necessariamente selecionados) compram
-  const todosCompradores = (_allClis || []).map(cli => {
-    const cp = cli.p[cod];
-    return cp ? { n: cli.n, curva: cli.curvaC, dt: cp[1], v: cp[0] } : null;
-  }).filter(Boolean).sort((a,b) => (b.dt||'').localeCompare(a.dt||''));
-
-  const usarTodos = CLIS.length === 0;
-  const lista = usarTodos ? todosCompradores : compradores;
-  const total = usarTodos ? todosCompradores.length : todosCompradores.length;
-  const sel = usarTodos ? todosCompradores.length : compradores.length;
 
   let html = '';
-  if(lista.length === 0){
-    html = `<div class="prod-modal-none">${CLIS.length ? 'Nenhum dos clientes selecionados compra este produto.' : 'Nenhum cliente do setor compra este produto.'}</div>`;
+  if(compradores.length === 0){
+    html = `<div class="prod-modal-none">Nenhum cliente do setor compra este produto.</div>`;
   } else {
-    html += `<div class="prod-modal-stat"><span><b>${sel}</b> ${usarTodos ? 'clientes do setor' : 'dos ' + CLIS.length + ' selecionados'} compram</span><span><b>${total}</b> no setor total</span></div>`;
-    html += lista.map(r =>
+    html += `<div class="prod-modal-stat"><span><b>${compradores.length}</b> cliente(s) do setor compram</span></div>`;
+    html += compradores.map(r =>
       `<div class="prod-modal-row">
         <span class="pill cv-${r.curva}">${r.curva}</span>
         <span class="nm">${r.n}</span>
