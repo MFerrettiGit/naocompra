@@ -57,8 +57,14 @@ try {
   $pRuns = @($allRuns.workflow_runs | Where-Object { $_.name -eq "pages build and deployment" })
   $activeRun = $pRuns | Where-Object { $_.status -eq "in_progress" -or $_.status -eq "queued" } | Select-Object -First 1
   if ($activeRun) {
-    Write-Output "Deployment ativo (status=$($activeRun.status)) â€” push adiado para a prÃ³xima execuÃ§Ã£o."
-    $skipPush = $true
+    $updatedAtActive = [datetime]::Parse($activeRun.updated_at, $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+    $minAgoActive = [math]::Round(([datetime]::UtcNow - $updatedAtActive).TotalMinutes, 1)
+    if ($minAgoActive -gt 30) {
+      Write-Output "Deployment marcado como '$($activeRun.status)' ha $minAgoActive min (travado/orfao) â€” ignorando e seguindo com o push."
+    } else {
+      Write-Output "Deployment ativo (status=$($activeRun.status)) â€” push adiado para a prÃ³xima execuÃ§Ã£o."
+      $skipPush = $true
+    }
   } else {
     $lastRun = $pRuns | Where-Object { $_.status -eq "completed" } | Select-Object -First 1
     if ($lastRun -and $lastRun.conclusion -eq "failure") {
